@@ -1,0 +1,50 @@
+name: Scrape popular videos
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours (adjust as needed)
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # If using Playwright, install browser binaries
+          if [ "$USE_PLAYWRIGHT" = "1" ]; then
+            pip install -r requirements-playwright.txt
+            python -m playwright install
+          fi
+        env:
+          USE_PLAYWRIGHT: "0"
+
+      - name: Run automated scraper
+        run: |
+          python automated_scraper.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add videos.json || true
+          git add scraping_summary.json || true
+          git commit -m "Automated scrape update - $(date)" || echo "No changes to commit"
+          git push || echo "Push failed"
+
+      - name: Report status
+        run: |
+          if [ -f scraping_summary.json ]; then
+            echo "Scraping Summary:"
+            cat scraping_summary.json
+          fi

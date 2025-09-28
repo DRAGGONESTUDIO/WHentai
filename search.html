@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="RATING" content="RTA-5042-1996-1400-1577-RTA" />
+    <title>Search Results - WHentai</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1><a href="index.html">WHentai</a></h1>
+                </div>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="popular.html">Popular</a></li>
+                        <li><a href="newest.html">Newest</a></li>
+                        <li><a href="category.html">Categories</a></li>
+                        <li><a href="random.html">Random</a></li>
+                    </ul>
+                </nav>
+                <div class="search-bar">
+                    <input type="text" placeholder="Search videos..." id="search-input">
+                    <button id="search-button"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Results Section -->
+    <main class="main-content">
+        <div class="container">
+            <section class="search-results">
+                <div class="section-header">
+                    <h2><i class="fas fa-search"></i> Search Results for: <span id="search-query">"demon"</span></h2>
+                    <div class="search-info">
+                        <span id="result-count">8</span> videos found
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label for="sort-by">Sort by:</label>
+                        <select id="sort-by">
+                            <option value="relevance">Relevance</option>
+                            <option value="newest">Newest</option>
+                            <option value="popular">Most Popular</option>
+                            <option value="duration">Duration</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="duration">Duration:</label>
+                        <select id="duration">
+                            <option value="any">Any</option>
+                            <option value="short">Short (< 10 min)</option>
+                            <option value="medium">Medium (10-30 min)</option>
+                            <option value="long">Long (> 30 min)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="video-grid" id="search-results-grid">
+                    <!-- Search results will be loaded here by JavaScript -->
+                </div>
+                <div class="pagination">
+                    <button class="btn btn-secondary"><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span class="page-info">Page 1 of 3</span>
+                    <button class="btn btn-secondary">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>WHentai</h3>
+                    <p>Your ultimate destination for high-quality hentai content. Discover, enjoy, and share your favorite videos.</p>
+                    <div class="social-links">
+                        <a href="https://www.youtube.com/@draggonestudio" target="_blank"><i class="fab fa-youtube"></i></a>
+                        <a href="https://www.instagram.com/draggonestudio/" target="_blank"><i class="fab fa-instagram"></i></a>
+                        <a href="https://x.com/DraggoneStudio" target="_blank"><i class="fab fa-x-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Navigation</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="popular.html">Popular</a></li>
+                        <li><a href="category.html">Categories</a></li>
+                        <li><a href="random.html">Random</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="privacy-statement.html">Privacy Policy</a></li>
+                        <li><a href="statement-of-responsibility.html">Statement of Responsibility</a></li>
+                        <li><a href="notice-and-action-policy.html">Notice and Action Policy</a></li>
+                        <li><a href="acceptable-content-policy.html">Acceptable Content Policy</a></li>
+                        <li><a href="digital-services-act-notice.html">Digital Services Act Notice</a></li>
+                        <li><a href="2257-exemption-statement.html">§2257 Exemption Statement</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 WHentai. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="search.js"></script>
+</body>
+</html>

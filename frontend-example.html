@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery Example</title>
+    <style>
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+        .video-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .video-card .title {
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Gallery</h1>
+    <div class="video-grid" id="videoContainer">
+        <!-- Videos will be loaded here by JavaScript -->
+    </div>
+
+    <script>
+        // Load videos from videos.json
+        fetch('videos.json')
+            .then(response => response.json())
+            .then(videos => {
+                const container = document.getElementById('videoContainer');
+                videos.forEach(video => {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+                    
+                    // Link to external URL if available, otherwise to detail page
+                    const link = document.createElement('a');
+                    link.href = video.external_url || video.detail_url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    
+                    const img = document.createElement('img');
+                    img.src = video.thumbnail;
+                    img.alt = video.title;
+                    
+                    const title = document.createElement('div');
+                    title.className = 'title';
+                    title.textContent = video.title;
+                    
+                    link.appendChild(img);
+                    link.appendChild(title);
+                    card.appendChild(link);
+                    container.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading videos:', error);
+                document.getElementById('videoContainer').innerHTML = '<p>Error loading videos. Please check the console for details.</p>';
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/videos",
+      "dest": "app.py"
+    },
+    {
+      "src": "/scrape",
+      "dest": "app.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ],
+  "env": {
+    "VERCEL_ENV": "production"
+  },
+  "crons": [
+    {
+      "path": "/scrape",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
