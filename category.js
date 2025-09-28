@@ -1,12 +1,53 @@
 // Category data with names and video counts - we'll populate this dynamically
 let categoryData = [];
+let videosCache = null; // Cache for video data
+let isLoading = false; // Flag to prevent multiple simultaneous requests
 
 // Function to load categories from videos data
 async function loadCategoriesFromVideos() {
+    // Prevent multiple simultaneous requests
+    if (isLoading) return;
+    
+    isLoading = true;
+    
     try {
-        const response = await fetch('videos.json');
+        // Check if we have cached data
+        if (videosCache) {
+            processCategories(videosCache);
+            isLoading = false;
+            return;
+        }
+        
+        // Fetch videos with a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        // Use the smaller videos_cleaned.json file instead of the large videos.json
+        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const videos = await response.json();
         
+        // Cache the data
+        videosCache = videos;
+        
+        processCategories(videos);
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to static categories
+        displayStaticCategories();
+    } finally {
+        isLoading = false;
+    }
+}
+
+// Function to process categories after loading videos
+function processCategories(videos) {
+    try {
         // Count categories from video data
         const categoryCount = {};
         
@@ -29,7 +70,7 @@ async function loadCategoriesFromVideos() {
         // Display categories
         displayCategories();
     } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error('Error processing categories:', error);
         // Fallback to static categories
         displayStaticCategories();
     }

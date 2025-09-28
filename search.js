@@ -5,6 +5,8 @@ let allFilteredVideos = [];
 let currentSortBy = 'relevance'; // Default sorting
 let currentDurationFilter = 'any'; // Default duration filter
 let displayedVideoIds = new Set(); // Track displayed video IDs to prevent duplicates
+let videosCache = null; // Cache for video data
+let isLoading = false; // Flag to prevent multiple simultaneous requests
 
 // Get search query from URL parameters
 function getSearchQuery() {
@@ -190,8 +192,13 @@ function filterVideosByDuration(videos, durationFilter) {
     }
 }
 
-// Function to load search results
+// Function to load search results from videos_cleaned.json with caching
 async function loadSearchResults(query) {
+    // Prevent multiple simultaneous requests
+    if (isLoading) return;
+    
+    isLoading = true;
+    
     try {
         // Update the search query display
         document.getElementById('search-query').textContent = `"${query}"`;
@@ -203,9 +210,28 @@ async function loadSearchResults(query) {
         // Reset displayed video IDs
         displayedVideoIds.clear();
         
-        // Load all videos
-        const response = await fetch('videos.json');
-        const videos = await response.json();
+        // Check if we have cached data
+        let videos;
+        if (videosCache) {
+            videos = videosCache;
+        } else {
+            // Fetch videos with a timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            // Use the smaller videos_cleaned.json file instead of the large videos.json
+            const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            videos = await response.json();
+            
+            // Cache the data
+            videosCache = videos;
+        }
         
         // Remove duplicate videos
         const uniqueVideos = removeDuplicateVideos(videos);
@@ -252,6 +278,8 @@ async function loadSearchResults(query) {
                 <p>Please try again later</p>
             </div>
         `;
+    } finally {
+        isLoading = false;
     }
 }
 

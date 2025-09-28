@@ -3,6 +3,8 @@ let currentPage = 1;
 const videosPerPage = 36; // 18 trending + 18 latest per page
 let allVideos = [];
 let displayedVideoIds = new Set(); // Track displayed video IDs to prevent duplicates
+let videosCache = null; // Cache for video data
+let isLoading = false; // Flag to prevent multiple simultaneous requests
 
 // Function to create video card HTML
 function createVideoCard(video) {
@@ -124,12 +126,55 @@ function removeDuplicateVideos(videos) {
     return uniqueVideos;
 }
 
-// Function to load videos from videos.json
+// Function to load videos from videos_cleaned.json with caching
 async function loadVideosFromJSON() {
+    // Prevent multiple simultaneous requests
+    if (isLoading) return;
+    
+    isLoading = true;
+    
     try {
-        const response = await fetch('videos.json');
+        // Check if we have cached data
+        if (videosCache) {
+            processVideos(videosCache);
+            isLoading = false;
+            return;
+        }
+        
+        // Show loading indicator
+        showLoadingIndicator();
+        
+        // Fetch videos with a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        // Use the smaller videos_cleaned.json file instead of the large videos.json
+        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const videos = await response.json();
         
+        // Cache the data
+        videosCache = videos;
+        
+        processVideos(videos);
+    } catch (error) {
+        console.error('Error loading videos:', error);
+        hideLoadingIndicator();
+        // Fallback to sample data
+        populateVideoGrids();
+    } finally {
+        isLoading = false;
+    }
+}
+
+// Function to process videos after loading
+function processVideos(videos) {
+    try {
         // Filter out videos without any URLs
         const validVideos = videos.filter(video => 
             (video.external_url && video.external_url.trim() !== '') || 
@@ -142,11 +187,14 @@ async function loadVideosFromJSON() {
         // Shuffle videos to avoid repetition
         const shuffledVideos = [...uniqueVideos].sort(() => 0.5 - Math.random());
         
-        // Take a larger sample for pagination
-        allVideos = shuffledVideos.slice(0, 5000); // Load more videos for pagination
+        // Take a larger sample for pagination but limit for performance
+        allVideos = shuffledVideos.slice(0, 5000); // Load more videos for pagination but limit to 5000
         
         // Reset displayed video IDs
         displayedVideoIds.clear();
+        
+        // Hide loading indicator
+        hideLoadingIndicator();
         
         // Display first page of videos
         displayVideos();
@@ -154,10 +202,31 @@ async function loadVideosFromJSON() {
         // Load popular categories
         loadPopularCategories(uniqueVideos);
     } catch (error) {
-        console.error('Error loading videos:', error);
+        console.error('Error processing videos:', error);
+        hideLoadingIndicator();
         // Fallback to sample data
         populateVideoGrids();
     }
+}
+
+// Function to show loading indicator
+function showLoadingIndicator() {
+    const trendingContainer = document.getElementById('trending-videos');
+    const latestContainer = document.getElementById('latest-videos');
+    
+    if (trendingContainer) {
+        trendingContainer.innerHTML = '<div class="loading-message">Loading videos...</div>';
+    }
+    
+    if (latestContainer) {
+        latestContainer.innerHTML = '<div class="loading-message">Loading videos...</div>';
+    }
+}
+
+// Function to hide loading indicator
+function hideLoadingIndicator() {
+    const loadingMessages = document.querySelectorAll('.loading-message');
+    loadingMessages.forEach(el => el.remove());
 }
 
 // Function to load popular categories
@@ -268,6 +337,14 @@ function displayVideos() {
 function loadMoreVideos() {
     currentPage++;
     displayVideos();
+    
+    // Update load more button text when approaching end
+    const totalPages = Math.ceil(allVideos.length / videosPerPage);
+    const loadMoreButton = document.getElementById('load-more');
+    if (loadMoreButton && currentPage >= totalPages - 1) {
+        loadMoreButton.textContent = 'No More Videos';
+        loadMoreButton.disabled = true;
+    }
 }
 
 // Sample video data - fallback if videos.json fails to load

@@ -5,6 +5,8 @@ let allVideos = [];
 let currentSortBy = 'date'; // Default sorting for newest page (changed from 'newest')
 let displayedVideoIds = new Set(); // Track displayed video IDs to prevent duplicates
 let currentDurationFilter = 'any'; // Default duration filter
+let videosCache = null; // Cache for video data
+let isLoading = false; // Flag to prevent multiple simultaneous requests
 
 // Function to create video card HTML
 function createVideoCard(video) {
@@ -184,12 +186,49 @@ function filterVideosByDuration(videos, durationFilter) {
     }
 }
 
-// Function to load newest videos from videos.json
+// Function to load newest videos from videos_cleaned.json with caching
 async function loadNewestVideos() {
+    // Prevent multiple simultaneous requests
+    if (isLoading) return;
+    
+    isLoading = true;
+    
     try {
-        const response = await fetch('videos.json');
+        // Check if we have cached data
+        if (videosCache) {
+            processVideos(videosCache);
+            isLoading = false;
+            return;
+        }
+        
+        // Fetch videos with a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        // Use the smaller videos_cleaned.json file instead of the large videos.json
+        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const videos = await response.json();
         
+        // Cache the data
+        videosCache = videos;
+        
+        processVideos(videos);
+    } catch (error) {
+        console.error('Error loading newest videos:', error);
+    } finally {
+        isLoading = false;
+    }
+}
+
+// Function to process videos after loading
+function processVideos(videos) {
+    try {
         // Filter out videos without any URLs
         const validVideos = videos.filter(video => 
             (video.external_url && video.external_url.trim() !== '') || 
@@ -217,7 +256,7 @@ async function loadNewestVideos() {
         // Display first page of videos
         displayVideos();
     } catch (error) {
-        console.error('Error loading newest videos:', error);
+        console.error('Error processing newest videos:', error);
     }
 }
 
