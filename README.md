@@ -1,6 +1,6 @@
-# WHentai - Adult Cartoon Video Aggregator
+# WHentai - Adult Video Aggregator
 
-A web application that scrapes adult cartoon videos from https://www.cartoonpornvideos.com and displays them in a user-friendly interface.
+A web application that scrapes adult videos from https://www.example.com and displays them in a user-friendly interface.
 
 For detailed information about this specific project, see [README-WHENTAI.md](README-WHENTAI.md).
 
