@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Video Links</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .url-info {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .url-info strong {
+            display: inline-block;
+            width: 120px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .status.direct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.redirect {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status.missing {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .test-button {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Video Links</h1>
+    <p>This page helps debug whether videos go directly to the original source or through cartoonpornvideos.com first.</p>
+    
+    <div>
+        <button id="load-videos" class="test-button">Load Videos and Test Links</button>
+        <button id="test-current" class="test-button" disabled>Test Current Implementation</button>
+    </div>
+    
+    <div id="video-container"></div>
+
+    <script>
+        let allVideos = [];
+        
+        // Function to determine which URL should be used
+        function getPreferredUrl(video) {
+            // Always prioritize external_url over detail_url
+            // Only use detail_url as a fallback when external_url is empty or invalid
+            const hasValidExternalUrl = video.external_url && 
+                                      video.external_url.trim() !== '' && 
+                                      video.external_url !== '#';
+            
+            if (hasValidExternalUrl) {
+                return video.external_url;
+            }
+            
+            // Fallback to detail_url
+            return video.detail_url || '#';
+        }
+        
+        // Function to check if URL is cartoonpornvideos.com
+        function isCartoonPornVideosUrl(url) {
+            return url && url.includes('cartoonpornvideos.com');
+        }
+        
+        // Function to display video information
+        function displayVideos(videos) {
+            const container = document.getElementById('video-container');
+            
+            // Take first 3 videos for testing
+            const testVideos = videos.slice(0, 3);
+            
+            container.innerHTML = testVideos.map((video, index) => {
+                const preferredUrl = getPreferredUrl(video);
+                const isDirect = !isCartoonPornVideosUrl(preferredUrl);
+                const hasExternalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#';
+                
+                return `
+                    <div class="video-card">
+                        <div class="video-title">${video.title}</div>
+                        
+                        <div class="url-info">
+                            <strong>External URL:</strong> 
+                            <span>${video.external_url || 'None'}</span>
+                        </div>
+                        
+                        <div class="url-info">
+                            <strong>Detail URL:</strong> 
+                            <span>${video.detail_url || 'None'}</span>
+                        </div>
+                        
+                        <div class="url-info">
+                            <strong>Preferred URL:</strong> 
+                            <span>${preferredUrl}</span>
+                        </div>
+                        
+                        <div class="status ${isDirect ? 'direct' : 'redirect'}">
+                            Link Status: ${isDirect ? 'DIRECT' : 'REDIRECT through cartoonpornvideos.com'}
+                        </div>
+                        
+                        <div class="url-info">
+                            <strong>Has External URL:</strong> 
+                            <span>${hasExternalUrl ? 'Yes' : 'No'}</span>
+                        </div>
+                        
+                        <button class="test-button" onclick="testLink(${index})">
+                            Test Preferred Link
+                        </button>
+                        
+                        <div id="test-result-${index}" class="test-result" style="display: none;"></div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Enable test button
+            document.getElementById('test-current').disabled = false;
+        }
+        
+        // Function to test a link
+        function testLink(index) {
+            const video = allVideos[index];
+            const preferredUrl = getPreferredUrl(video);
+            const resultDiv = document.getElementById(`test-result-${index}`);
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <p>Testing link: <a href="${preferredUrl}" target="_blank">${preferredUrl}</a></p>
+                <p>If this takes you directly to the original video source, the fix is working.</p>
+                <p>If you see a cartoonpornvideos.com page first, there may still be an issue.</p>
+            `;
+        }
+        
+        // Function to test current implementation
+        function testCurrentImplementation() {
+            const container = document.getElementById('video-container');
+            container.innerHTML = '<p>Testing current implementation with all video pages...</p>';
+            
+            // This would simulate what happens in the actual pages
+            // For now, we'll just show what URLs would be used
+            const results = allVideos.slice(0, 5).map(video => {
+                const preferredUrl = getPreferredUrl(video);
+                const isDirect = !isCartoonPornVideosUrl(preferredUrl);
+                
+                return {
+                    title: video.title,
+                    preferredUrl: preferredUrl,
+                    isDirect: isDirect,
+                    hasExternalUrl: video.external_url && video.external_url.trim() !== '' && video.external_url !== '#'
+                };
+            });
+            
+            container.innerHTML = `
+                <h2>Current Implementation Test Results</h2>
+                ${results.map(result => `
+                    <div class="video-card">
+                        <div class="video-title">${result.title}</div>
+                        <div class="url-info">
+                            <strong>URL Used:</strong> ${result.preferredUrl}
+                        </div>
+                        <div class="status ${result.isDirect ? 'direct' : 'redirect'}">
+                            ${result.isDirect ? 'DIRECT LINK' : 'REDIRECT LINK'}
+                        </div>
+                        <div class="url-info">
+                            <strong>Has External URL:</strong> ${result.hasExternalUrl ? 'Yes' : 'No'}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        // Event listeners
+        document.getElementById('load-videos').addEventListener('click', () => {
+            // Load videos from videos.json
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    allVideos = videos;
+                    displayVideos(videos);
+                })
+                .catch(error => {
+                    console.error('Error loading videos:', error);
+                    document.getElementById('video-container').innerHTML = '<p>Error loading videos. Please check the console for details.</p>';
+                });
+        });
+        
+        document.getElementById('test-current').addEventListener('click', testCurrentImplementation);
+        
+        // Initialize
+        console.log('Debug page loaded. Click "Load Videos and Test Links" to begin.');
+    </script>
+</body>
+</html>

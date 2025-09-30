@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Direct Links</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .video-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .video-link {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .video-link:hover {
+            background-color: #0056b3;
+        }
+        .direct-link {
+            background-color: #28a745;
+        }
+        .direct-link:hover {
+            background-color: #1e7e34;
+        }
+        .no-external {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .no-external:hover {
+            background-color: #e0a800;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Direct Video Links</h1>
+    <p>This page tests whether videos go directly to the original source or through cartoonpornvideos.com first.</p>
+    <div id="video-container">
+        <p>Loading videos...</p>
+    </div>
+
+    <script>
+        // Load videos from videos.json
+        fetch('videos.json')
+            .then(response => response.json())
+            .then(videos => {
+                const container = document.getElementById('video-container');
+                
+                // Take first 5 videos for testing
+                const testVideos = videos.slice(0, 5);
+                
+                container.innerHTML = testVideos.map(video => {
+                    const hasExternalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#';
+                    const externalUrl = hasExternalUrl ? video.external_url : video.detail_url;
+                    const detailUrl = video.detail_url || '#';
+                    
+                    return `
+                        <div class="video-card">
+                            <div class="video-title">${video.title}</div>
+                            <div class="video-links">
+                                <a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="video-link ${hasExternalUrl ? 'direct-link' : 'no-external'}">
+                                    ${hasExternalUrl ? 'Direct Link' : 'Detail Page Link'}
+                                </a>
+                                <a href="${detailUrl}" target="_blank" rel="noopener noreferrer" class="video-link">
+                                    CartoonPornVideos Link
+                                </a>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                <strong>External URL:</strong> ${video.external_url || 'None'}<br>
+                                <strong>Detail URL:</strong> ${video.detail_url || 'None'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            })
+            .catch(error => {
+                console.error('Error loading videos:', error);
+                document.getElementById('video-container').innerHTML = '<p>Error loading videos. Please check the console for details.</p>';
+            });
+    </script>
+</body>
+</html>

@@ -59,8 +59,8 @@ function displayVideos() {
         return;
     }
     
-    // Generate HTML for video cards
-    const videoHTML = videosToDisplay.map(video => createVideoCard(video)).join('');
+    // Generate HTML for video cards, passing index for consistent duration assignment
+    const videoHTML = videosToDisplay.map((video, index) => createVideoCard(video, index)).join('');
     videoGrid.innerHTML = videoHTML;
     
     // Update pagination
@@ -68,19 +68,27 @@ function displayVideos() {
 }
 
 // Function to create video card HTML with proper metadata display
-function createVideoCard(video) {
+function createVideoCard(video, index = 0) {
     // Default values for missing properties
     const title = video.title || 'Untitled Video';
     const thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     const detailUrl = video.detail_url || '#';
-    const externalUrl = video.external_url || detailUrl;
     
-    // For demo purposes, we'll generate random durations, views, and dates
-    const durations = ["15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
+    // Always prioritize external_url over detail_url
+    // Only use detail_url as a fallback when external_url is empty or invalid
+    const externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+        ? video.external_url 
+        : detailUrl;
+    
+    // For demo purposes, we'll generate consistent durations, views, and dates based on video index
+    const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
     const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
     const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
     
-    const randomDuration = durations[Math.floor(Math.random() * durations.length)];
+    // Assign consistent duration based on video properties for filtering consistency
+    const durationSeed = title.length + (detailUrl ? detailUrl.length : 0) + index;
+    const durationIndex = durationSeed % durations.length;
+    const randomDuration = durations[durationIndex];
     const randomViews = views[Math.floor(Math.random() * views.length)];
     const randomDate = dates[Math.floor(Math.random() * dates.length)];
     
@@ -88,21 +96,11 @@ function createVideoCard(video) {
         <div class="video-card">
             <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}">
+                    <img src="${thumbnail}" alt="${title}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';">
                     <div class="video-duration">${randomDuration}</div>
                 </div>
                 <div class="video-info">
                     <div class="video-title">${title}</div>
-                    <div class="video-meta">
-                        <div class="video-views">
-                            <i class="fas fa-eye"></i>
-                            ${randomViews}
-                        </div>
-                        <div class="video-date">
-                            <i class="far fa-clock"></i>
-                            ${randomDate}
-                        </div>
-                    </div>
                 </div>
             </a>
         </div>

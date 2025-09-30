@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Videos</title>
+</head>
+<body>
+    <h1>Test Videos</h1>
+    <div id="result"></div>
+    
+    <script>
+        fetch('videos.json')
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data loaded:', data.length);
+                document.getElementById('result').innerHTML = `
+                    <p>Loaded ${data.length} videos</p>
+                    <p>First video: ${JSON.stringify(data[0])}</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>

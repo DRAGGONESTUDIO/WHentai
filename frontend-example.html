@@ -49,7 +49,7 @@
                     const card = document.createElement('div');
                     card.className = 'video-card';
                     
-                    // Link to external URL if available, otherwise to detail page
+                    // Prioritize external URL over detail URL - only use detail URL if external URL is empty
                     const link = document.createElement('a');
                     link.href = video.external_url || video.detail_url;
                     link.target = '_blank';

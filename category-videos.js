@@ -99,21 +99,89 @@ function displayVideos() {
         return;
     }
     
-    // Generate HTML for video cards
-    const videoHTML = videosToDisplay.map(video => createVideoCard(video)).join('');
+    // Generate HTML for video cards, passing index for consistent duration assignment
+    const videoHTML = videosToDisplay.map((video, index) => createVideoCard(video, index)).join('');
     
-    // If this is the first page, replace content, otherwise append
-    if (currentPage === 1) {
-        videoGrid.innerHTML = videoHTML;
-    } else {
-        videoGrid.innerHTML += videoHTML;
+    // Replace content with video cards
+    videoGrid.innerHTML = videoHTML;
+    
+    // Update pagination controls
+    updatePagination();
+}
+
+// Function to go to a specific page
+function goToPage(pageNumber) {
+    if (pageNumber >= 1 && pageNumber <= Math.ceil(filteredVideos.length / videosPerPage)) {
+        currentPage = pageNumber;
+        displayVideos();
+        updatePagination();
+        
+        // Scroll to top of video grid
+        const videoGrid = document.getElementById('video-grid');
+        if (videoGrid) {
+            videoGrid.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 }
 
-// Function to load more videos
-function loadMoreVideos() {
-    currentPage++;
-    displayVideos();
+// Function to update pagination controls with numbered buttons
+function updatePagination() {
+    const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
+    const paginationContainer = document.getElementById('pagination-controls');
+    
+    if (paginationContainer && totalPages > 1) {
+        let paginationHTML = '';
+        
+        // Previous button
+        if (currentPage > 1) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage - 1})">Previous</button>`;
+        }
+        
+        // Numbered page buttons
+        const maxVisiblePages = 10;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // First page button (if not already shown)
+        if (startPage > 1) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) {
+                paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+        }
+        
+        // Page number buttons
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                paginationHTML += `<button class="btn btn-primary active" disabled>${i}</button>`;
+            } else {
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${i})">${i}</button>`;
+            }
+        }
+        
+        // Last page button (if not already shown)
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        
+        // Next button
+        if (currentPage < totalPages) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage + 1})">Next</button>`;
+        }
+        
+        paginationContainer.innerHTML = paginationHTML;
+    } else if (paginationContainer) {
+        // Hide pagination if there's only one page
+        paginationContainer.innerHTML = '';
+    }
 }
 
 // Function to handle search
@@ -125,7 +193,7 @@ function handleSearch(query) {
 }
 
 // Function to create video card HTML with proper metadata display
-function createVideoCard(video) {
+function createVideoCard(video, index = 0) {
     // Default values for missing properties
     const title = video.title || 'Untitled Video';
     let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
@@ -137,55 +205,11 @@ function createVideoCard(video) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
-    // Improved link handling - prioritize direct video links over redirect links
-    let externalUrl = detailUrl; // Default to detail_url
-    
-    // Check if we have a valid external URL
-    if (video.external_url && video.external_url.trim() !== '') {
-        // List of known redirect URLs that don't lead to actual videos
-        const invalidRedirects = [
-            'sortporn.com',
-            'bit.ly',
-            'lustyheroes.com',
-            'youfetishbitch.com',
-            'bemyhole.com',
-            'tsyndicate.com',
-            'theporndude.com',
-            'rpwmct.com',
-            '60fpsanimation.com',
-            'hentaismile.com',
-            'lesbian8.com',
-            'freeporn8.com',
-            'welcomix.com',
-            'fapality.com',
-            'mylust.com',
-            'eporner.com',
-            'xxxfree.watch',
-            'zlink7.com',
-            'adtng.com',
-            'ylmcash.com',
-            'aberatii.com',
-            'kimsaliese.com',
-            'whitehardcorp.com',
-            'brazzersnetwork.com'
-        ];
-        
-        // Check if the external URL is a valid direct link
-        const isInvalidRedirect = invalidRedirects.some(domain => video.external_url.includes(domain));
-        
-        // Use external URL if it's not a known redirect, or if detail_url is not available
-        if (!isInvalidRedirect || detailUrl === '#' || detailUrl === '') {
-            externalUrl = video.external_url;
-        }
-        // Otherwise, fall back to detail_url if it's available
-        else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-            externalUrl = detailUrl;
-        }
-    }
-    // If no external URL, ensure we have a valid detail URL
-    else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-        externalUrl = detailUrl;
-    }
+    // Always prioritize external_url over detail_url
+    // Only use detail_url as a fallback when external_url is empty or invalid
+    let externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+        ? video.external_url 
+        : detailUrl;
     
     // Additional validation for the final URL
     // If the URL is still invalid, use a fallback
@@ -194,12 +218,15 @@ function createVideoCard(video) {
         externalUrl = 'https://www.cartoonpornvideos.com/';
     }
     
-    // For demo purposes, we'll generate random durations, views, and dates
-    const durations = ["15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
+    // For demo purposes, we'll generate consistent durations, views, and dates based on video index
+    const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
     const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
     const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
     
-    const randomDuration = durations[Math.floor(Math.random() * durations.length)];
+    // Assign consistent duration based on video properties for filtering consistency
+    const durationSeed = title.length + (detailUrl ? detailUrl.length : 0) + index;
+    const durationIndex = durationSeed % durations.length;
+    const randomDuration = durations[durationIndex];
     const randomViews = views[Math.floor(Math.random() * views.length)];
     const randomDate = dates[Math.floor(Math.random() * dates.length)];
     
@@ -207,21 +234,11 @@ function createVideoCard(video) {
         <div class="video-card">
             <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';">
+                    <img src="${thumbnail}" alt="${title}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';">
                     <div class="video-duration">${randomDuration}</div>
                 </div>
                 <div class="video-info">
                     <div class="video-title">${title}</div>
-                    <div class="video-meta">
-                        <div class="video-views">
-                            <i class="fas fa-eye"></i>
-                            ${randomViews}
-                        </div>
-                        <div class="video-date">
-                            <i class="far fa-clock"></i>
-                            ${randomDate}
-                        </div>
-                    </div>
                 </div>
             </a>
         </div>
@@ -244,14 +261,6 @@ function initSearch() {
                 const query = searchInput.value.trim();
                 handleSearch(query);
             }
-        });
-    }
-    
-    // Set up load more button
-    const loadMoreButton = document.getElementById('load-more');
-    if (loadMoreButton) {
-        loadMoreButton.addEventListener('click', () => {
-            loadMoreVideos();
         });
     }
 }

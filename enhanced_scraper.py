@@ -35,8 +35,8 @@ HEADERS = {
 }
 REQUEST_DELAY = (0.5, 1.5)  # Delay between requests
 TIMEOUT = 15  # HTTP timeout
-MAX_ITEMS_PER_SOURCE = 5000  # Increased to get more videos per source
-MAX_PAGES_PER_SOURCE = 50    # Increased to get more pages per source
+MAX_ITEMS_PER_SOURCE = 3000  # Increased to get more videos per source
+MAX_PAGES_PER_SOURCE = 30    # Increased to get more pages per source
 USE_PLAYWRIGHT = False  # set True if pages require JS to render external links
 
 # Add pagination support

@@ -2,9 +2,12 @@
 let currentPage = 1;
 const videosPerPage = 36; // 18 trending + 18 latest per page
 let allVideos = [];
-let displayedVideoIds = new Set(); // Track displayed video IDs to prevent duplicates
 let videosCache = null; // Cache for video data
 let isLoading = false; // Flag to prevent multiple simultaneous requests
+let currentTrendingSortBy = 'random'; // Default sorting for trending videos
+let currentTrendingDurationFilter = 'any'; // Default duration filter for trending videos
+let currentLatestSortBy = 'random'; // Default sorting for latest videos
+let currentLatestDurationFilter = 'any'; // Default duration filter for latest videos
 
 // Function to create video card HTML
 function createVideoCard(video) {
@@ -15,7 +18,13 @@ function createVideoCard(video) {
     
     // Check if thumbnail URL is valid, if not use fallback
     if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http')) {
+        !thumbnail.startsWith('http') || thumbnail.trim() === '') {
+        thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+    }
+    
+    // Additional check for broken image URLs
+    const brokenImagePatterns = ['data:image', 'blob:', 'javascript:'];
+    if (brokenImagePatterns.some(pattern => thumbnail.startsWith(pattern))) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
@@ -26,30 +35,12 @@ function createVideoCard(video) {
     if (video.external_url && video.external_url.trim() !== '') {
         // List of known redirect URLs that don't lead to actual videos
         const invalidRedirects = [
-            'sortporn.com',
-            'bit.ly',
-            'lustyheroes.com',
-            'youfetishbitch.com',
-            'bemyhole.com',
-            'tsyndicate.com',
-            'theporndude.com',
-            'rpwmct.com',
-            '60fpsanimation.com',
-            'hentaismile.com',
-            'lesbian8.com',
-            'freeporn8.com',
-            'welcomix.com',
-            'fapality.com',
-            'mylust.com',
-            'eporner.com',
-            'xxxfree.watch',
-            'zlink7.com',
-            'adtng.com',
-            'ylmcash.com',
-            'aberatii.com',
-            'kimsaliese.com',
-            'whitehardcorp.com',
-            'brazzersnetwork.com'
+            'sortporn.com', 'bit.ly', 'lustyheroes.com', 'youfetishbitch.com',
+            'bemyhole.com', 'tsyndicate.com', 'theporndude.com', 'rpwmct.com',
+            '60fpsanimation.com', 'hentaismile.com', 'lesbian8.com', 'freeporn8.com',
+            'welcomix.com', 'fapality.com', 'mylust.com', 'eporner.com',
+            'xxxfree.watch', 'zlink7.com', 'adtng.com', 'ylmcash.com',
+            'aberatii.com', 'kimsaliese.com', 'whitehardcorp.com', 'brazzersnetwork.com'
         ];
         
         // Check if the external URL is a valid direct link
@@ -85,21 +76,11 @@ function createVideoCard(video) {
         <div class="video-card">
             <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';">
+                    <img src="${thumbnail}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';" onload="this.style.opacity='1';" style="opacity:0; transition: opacity 0.3s;">
                     <div class="video-duration">${duration}</div>
                 </div>
                 <div class="video-info">
                     <div class="video-title">${title}</div>
-                    <div class="video-meta">
-                        <div class="video-views">
-                            <i class="fas fa-eye"></i>
-                            ${views}
-                        </div>
-                        <div class="video-date">
-                            <i class="far fa-clock"></i>
-                            ${uploadDate}
-                        </div>
-                    </div>
                 </div>
             </a>
         </div>
@@ -148,8 +129,8 @@ async function loadVideosFromJSON() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        // Use the smaller videos_cleaned.json file instead of the large videos.json
-        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        // Use the videos.json file
+        const response = await fetch('videos.json', { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (!response.ok) {
@@ -172,6 +153,52 @@ async function loadVideosFromJSON() {
     }
 }
 
+// Function to sort videos based on selected criteria
+function sortVideos(videos, sortBy) {
+    // Create a copy of the array to avoid modifying the original
+    const sortedVideos = [...videos];
+    
+    switch (sortBy) {
+        case 'views':
+            return sortedVideos.sort((a, b) => {
+                // Simple view comparison (in a real app, you'd have actual view counts)
+                return Math.random() - 0.5;
+            });
+        case 'date':
+            return sortedVideos.sort((a, b) => {
+                // For date sorting
+                return Math.random() - 0.5;
+            });
+        case 'duration':
+            return sortedVideos.sort((a, b) => {
+                // Simple duration comparison (in a real app, you'd have actual durations)
+                return Math.random() - 0.5;
+            });
+        default:
+            return sortedVideos.sort(() => Math.random() - 0.5);
+    }
+}
+
+// Function to filter videos by duration
+function filterVideosByDuration(videos, durationFilter) {
+    if (durationFilter === 'any') {
+        return videos;
+    }
+    
+    // Simulate filtering by returning a subset based on the filter
+    const filteredVideos = [...videos];
+    switch (durationFilter) {
+        case 'short':
+            return filteredVideos.sort(() => Math.random() - 0.5);
+        case 'medium':
+            return filteredVideos.sort(() => Math.random() - 0.5);
+        case 'long':
+            return filteredVideos.sort(() => Math.random() - 0.5);
+        default:
+            return videos;
+    }
+}
+
 // Function to process videos after loading
 function processVideos(videos) {
     try {
@@ -184,14 +211,8 @@ function processVideos(videos) {
         // Remove duplicate videos
         const uniqueVideos = removeDuplicateVideos(validVideos);
         
-        // Shuffle videos to avoid repetition
-        const shuffledVideos = [...uniqueVideos].sort(() => 0.5 - Math.random());
-        
-        // Take a larger sample for pagination but limit for performance
-        allVideos = shuffledVideos.slice(0, 5000); // Load more videos for pagination but limit to 5000
-        
-        // Reset displayed video IDs
-        displayedVideoIds.clear();
+        // Store all videos for filtering
+        allVideos = uniqueVideos.slice(0, 5000); // Load more videos for pagination but limit to 5000
         
         // Hide loading indicator
         hideLoadingIndicator();
@@ -283,7 +304,17 @@ async function loadPopularCategories(videos) {
 function displayVideos() {
     const startIndex = (currentPage - 1) * videosPerPage;
     const endIndex = startIndex + videosPerPage;
-    const videosToDisplay = allVideos.slice(startIndex, endIndex);
+    let videosToDisplay = allVideos.slice(startIndex, endIndex);
+    
+    // Apply filters for trending videos
+    let trendingVideos = [...videosToDisplay];
+    trendingVideos = filterVideosByDuration(trendingVideos, currentTrendingDurationFilter);
+    trendingVideos = sortVideos(trendingVideos, currentTrendingSortBy);
+    
+    // Apply filters for latest videos
+    let latestVideos = [...videosToDisplay];
+    latestVideos = filterVideosByDuration(latestVideos, currentLatestDurationFilter);
+    latestVideos = sortVideos(latestVideos, currentLatestSortBy);
     
     // Populate the grids with real data
     const trendingContainer = document.getElementById('trending-videos');
@@ -292,60 +323,102 @@ function displayVideos() {
     if (trendingContainer && latestContainer) {
         // Split videos for trending and latest (first half for trending, second for latest)
         const half = Math.ceil(videosToDisplay.length / 2);
-        const trendingVideos = videosToDisplay.slice(0, half);
-        const latestVideos = videosToDisplay.slice(half);
+        const trendingVideosToDisplay = trendingVideos.slice(0, half);
+        const latestVideosToDisplay = latestVideos.slice(half);
         
-        // Create video cards for trending videos that haven't been displayed yet
-        const trendingVideoCards = [];
-        for (const video of trendingVideos) {
-            // Create a unique ID for the video based on its properties
-            const videoId = `${video.title}-${video.thumbnail}`;
+        // Create video cards for trending videos
+        const trendingVideoCards = trendingVideosToDisplay.map(createVideoCard);
+        
+        // Create video cards for latest videos
+        const latestVideoCards = latestVideosToDisplay.map(createVideoCard);
+        
+        // Replace content with video cards
+        trendingContainer.innerHTML = trendingVideoCards.join('');
+        latestContainer.innerHTML = latestVideoCards.join('');
+    }
+    
+    // Update pagination controls
+    updatePagination();
+}
+
+// Function to update pagination controls with numbered buttons
+function updatePagination() {
+    const totalPages = Math.ceil(allVideos.length / videosPerPage);
+    const paginationContainer = document.getElementById('pagination-controls');
+    
+    // Show pagination controls only if there's more than one page
+    if (paginationContainer) {
+        if (totalPages > 1) {
+            paginationContainer.style.display = 'flex';
             
-            // Only add the video if it hasn't been displayed yet
-            if (!displayedVideoIds.has(videoId)) {
-                displayedVideoIds.add(videoId);
-                trendingVideoCards.push(createVideoCard(video));
-            }
-        }
-        
-        // Create video cards for latest videos that haven't been displayed yet
-        const latestVideoCards = [];
-        for (const video of latestVideos) {
-            // Create a unique ID for the video based on its properties
-            const videoId = `${video.title}-${video.thumbnail}`;
+            let paginationHTML = '';
             
-            // Only add the video if it hasn't been displayed yet
-            if (!displayedVideoIds.has(videoId)) {
-                displayedVideoIds.add(videoId);
-                latestVideoCards.push(createVideoCard(video));
+            // Previous button
+            if (currentPage > 1) {
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage - 1})">Previous</button>`;
             }
-        }
-        
-        // Clear containers only on first page
-        if (currentPage === 1) {
-            trendingContainer.innerHTML = trendingVideoCards.join('');
-            latestContainer.innerHTML = latestVideoCards.join('');
+            
+            // Numbered page buttons
+            const maxVisiblePages = 10;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Adjust start page if we're near the end
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // First page button (if not already shown)
+            if (startPage > 1) {
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+                }
+            }
+            
+            // Page number buttons
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="btn btn-primary active" disabled>${i}</button>`;
+                } else {
+                    paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${i})">${i}</button>`;
+                }
+            }
+            
+            // Last page button (if not already shown)
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+                }
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Next button
+            if (currentPage < totalPages) {
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage + 1})">Next</button>`;
+            }
+            
+            paginationContainer.innerHTML = paginationHTML;
         } else {
-            // Append new videos
-            trendingContainer.innerHTML += trendingVideoCards.join('');
-            latestContainer.innerHTML += latestVideoCards.join('');
+            // Hide pagination if there's only one page
+            paginationContainer.style.display = 'none';
         }
     }
 }
 
-// Function to load more videos
-function loadMoreVideos() {
-    currentPage++;
-    displayVideos();
-    
-    // Update load more button text when approaching end
+// Function to go to a specific page
+function goToPage(pageNumber) {
     const totalPages = Math.ceil(allVideos.length / videosPerPage);
-    const loadMoreButton = document.getElementById('load-more');
-    if (loadMoreButton && currentPage >= totalPages - 1) {
-        loadMoreButton.textContent = 'No More Videos';
-        loadMoreButton.disabled = true;
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentPage = pageNumber;
+        displayVideos();
+        
+        // Scroll to top of page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
+
+// The loadMoreVideos function has been removed as we're now using pagination instead
 
 // Sample video data - fallback if videos.json fails to load
 const sampleVideos = [
@@ -411,6 +484,12 @@ function populateVideoGrids() {
     if (latestContainer) {
         latestContainer.innerHTML = sampleVideos.map(createVideoCard).join('');
     }
+    
+    // Hide pagination controls when using sample data
+    const paginationContainer = document.getElementById('pagination-controls');
+    if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+    }
 }
 
 // Function to handle search
@@ -418,6 +497,54 @@ function handleSearch(query) {
     if (query) {
         // Redirect to search page with query
         window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+    }
+}
+
+// Function to handle trending sort filter changes
+function handleTrendingSortChange() {
+    const sortFilter = document.getElementById('sort-filter');
+    if (sortFilter) {
+        currentTrendingSortBy = sortFilter.value;
+        // Reset to first page when sorting
+        currentPage = 1;
+        // Re-display videos with new sort order
+        displayVideos();
+    }
+}
+
+// Function to handle trending duration filter changes
+function handleTrendingDurationChange() {
+    const durationFilter = document.getElementById('duration-filter');
+    if (durationFilter) {
+        currentTrendingDurationFilter = durationFilter.value;
+        // Reset to first page when filtering
+        currentPage = 1;
+        // Re-display videos with new duration filter
+        displayVideos();
+    }
+}
+
+// Function to handle latest sort filter changes
+function handleLatestSortChange() {
+    const sortFilter = document.getElementById('latest-sort-filter');
+    if (sortFilter) {
+        currentLatestSortBy = sortFilter.value;
+        // Reset to first page when sorting
+        currentPage = 1;
+        // Re-display videos with new sort order
+        displayVideos();
+    }
+}
+
+// Function to handle latest duration filter changes
+function handleLatestDurationChange() {
+    const durationFilter = document.getElementById('latest-duration-filter');
+    if (durationFilter) {
+        currentLatestDurationFilter = durationFilter.value;
+        // Reset to first page when filtering
+        currentPage = 1;
+        // Re-display videos with new duration filter
+        displayVideos();
     }
 }
 
@@ -444,12 +571,26 @@ function init() {
         });
     }
     
-    // Set up load more button
-    const loadMoreButton = document.getElementById('load-more');
-    if (loadMoreButton) {
-        loadMoreButton.addEventListener('click', () => {
-            loadMoreVideos();
-        });
+    // Set up trending filters
+    const trendingSortFilter = document.getElementById('sort-filter');
+    if (trendingSortFilter) {
+        trendingSortFilter.addEventListener('change', handleTrendingSortChange);
+    }
+    
+    const trendingDurationFilter = document.getElementById('duration-filter');
+    if (trendingDurationFilter) {
+        trendingDurationFilter.addEventListener('change', handleTrendingDurationChange);
+    }
+    
+    // Set up latest filters
+    const latestSortFilter = document.getElementById('latest-sort-filter');
+    if (latestSortFilter) {
+        latestSortFilter.addEventListener('change', handleLatestSortChange);
+    }
+    
+    const latestDurationFilter = document.getElementById('latest-duration-filter');
+    if (latestDurationFilter) {
+        latestDurationFilter.addEventListener('change', handleLatestDurationChange);
     }
 }
 

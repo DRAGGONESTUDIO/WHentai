@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Buster Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .explanation {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .url-display {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .status.direct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.redirect {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+            background-color: #d1ecf1;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cache Buster Test</h1>
+        
+        <div class="explanation">
+            <h3>Problem Analysis</h3>
+            <p>If you're still seeing redirects to cartoonpornvideos.com despite our fixes, it could be due to:</p>
+            <ol>
+                <li>Browser cache - old JavaScript files might still be cached</li>
+                <li>Server cache - if using a web server with caching</li>
+                <li>Incorrect implementation in some files</li>
+                <li>Network-level redirects that we can't control</li>
+            </ol>
+        </div>
+        
+        <div class="instructions">
+            <h3>Steps to Resolve</h3>
+            <ol>
+                <li><strong>Hard refresh your browser:</strong> Ctrl+F5 (Windows) or Cmd+Shift+R (Mac)</li>
+                <li><strong>Clear browser cache:</strong> Settings → Privacy → Clear browsing data</li>
+                <li><strong>Check developer tools:</strong> Open F12 → Network tab → Look for redirects</li>
+                <li><strong>Test with this page:</strong> Click the test button below</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h2>Direct Link Test</h2>
+            <button id="run-test">Run Test (Bypasses Cache)</button>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Manual Verification</h2>
+            <p>To manually verify the fix:</p>
+            <ol>
+                <li>Open any video page (e.g., category-videos.html)</li>
+                <li>Open Developer Tools (F12)</li>
+                <li>Go to the Elements tab</li>
+                <li>Find a video link and check its href attribute</li>
+                <li>It should point to the external_url, not the detail_url</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Function that replicates the exact logic used in all JS files
+        function getPreferredUrl(video) {
+            // Always prioritize external_url over detail_url
+            // Only use detail_url as a fallback when external_url is empty or invalid
+            const hasValidExternalUrl = video.external_url && 
+                                      video.external_url.trim() !== '' && 
+                                      video.external_url !== '#';
+            
+            if (hasValidExternalUrl) {
+                return video.external_url;
+            }
+            
+            // Fallback to detail_url
+            return video.detail_url || '#';
+        }
+        
+        // Function to check if URL goes through cartoonpornvideos.com
+        function isRedirectUrl(url) {
+            return url && (url.includes('cartoonpornvideos.com') || url.includes('out/?l='));
+        }
+        
+        // Function to run the test with cache busting
+        function runTest() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>Loading videos with cache busting...</p>';
+            
+            // Add timestamp to bypass cache
+            const timestamp = new Date().getTime();
+            const url = `videos.json?v=${timestamp}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(videos => {
+                    // Take first 5 videos for testing
+                    const testVideos = videos.slice(0, 5);
+                    
+                    const results = testVideos.map(video => {
+                        const preferredUrl = getPreferredUrl(video);
+                        const isRedirect = isRedirectUrl(preferredUrl);
+                        const hasExternalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#';
+                        
+                        return {
+                            title: video.title,
+                            externalUrl: video.external_url || 'None',
+                            detailUrl: video.detail_url || 'None',
+                            preferredUrl: preferredUrl,
+                            isRedirect: isRedirect,
+                            hasExternalUrl: hasExternalUrl
+                        };
+                    });
+                    
+                    // Count direct vs redirect links
+                    const directCount = results.filter(r => !r.isRedirect).length;
+                    const redirectCount = results.filter(r => r.isRedirect).length;
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="result">
+                            <h3>Cache Busting Test Results</h3>
+                            <p><strong>Direct Links:</strong> ${directCount} videos</p>
+                            <p><strong>Redirect Links:</strong> ${redirectCount} videos</p>
+                            <p><strong>Total Tested:</strong> ${results.length} videos</p>
+                            <p><strong>Cache Busting:</strong> Used timestamp ${timestamp}</p>
+                        </div>
+                        
+                        <h3>Individual Results</h3>
+                        ${results.map(result => `
+                            <div class="video-card">
+                                <h4>${result.title}</h4>
+                                
+                                <div><strong>External URL:</strong></div>
+                                <div class="url-display">${result.externalUrl}</div>
+                                
+                                <div><strong>Detail URL:</strong></div>
+                                <div class="url-display">${result.detailUrl}</div>
+                                
+                                <div><strong>URL That Would Be Used:</strong></div>
+                                <div class="url-display">${result.preferredUrl}</div>
+                                
+                                <div class="status ${result.isRedirect ? 'redirect' : 'direct'}">
+                                    ${result.isRedirect ? 'REDIRECT through cartoonpornvideos.com' : 'DIRECT link'}
+                                </div>
+                                
+                                <div><strong>Has External URL:</strong> ${result.hasExternalUrl ? 'Yes' : 'No'}</div>
+                            </div>
+                        `).join('')}
+                        
+                        <div class="instructions">
+                            <h3>Next Steps</h3>
+                            <p>If you're still experiencing redirects:</p>
+                            <ol>
+                                <li>Hard refresh the actual video pages (Ctrl+F5)</li>
+                                <li>Check browser developer tools Network tab for redirects</li>
+                                <li>Verify that the href attributes on video links point to external_url</li>
+                                <li>If issues persist, the external_url values themselves might be redirect links</li>
+                            </ol>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsDiv.innerHTML = `<p>Error loading videos: ${error.message}</p>
+                    <p>Please ensure videos.json exists and is accessible.</p>`;
+                });
+        }
+        
+        // Set up event listener
+        document.getElementById('run-test').addEventListener('click', runTest);
+    </script>
+</body>
+</html>

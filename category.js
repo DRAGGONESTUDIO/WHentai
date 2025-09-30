@@ -22,8 +22,8 @@ async function loadCategoriesFromVideos() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        // Use the smaller videos_cleaned.json file instead of the large videos.json
-        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        // Use the videos.json file
+        const response = await fetch('videos.json', { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (!response.ok) {
@@ -32,10 +32,14 @@ async function loadCategoriesFromVideos() {
         
         const videos = await response.json();
         
+        // Limit to first 5000 videos for performance
+        const limitedVideos = videos.slice(0, 5000);
+        
         // Cache the data
         videosCache = videos;
         
-        processCategories(videos);
+        processCategories(limitedVideos);
+        processTags(limitedVideos); // Process tags as well
     } catch (error) {
         console.error('Error loading categories:', error);
         // Fallback to static categories
@@ -51,7 +55,7 @@ function processCategories(videos) {
         // Count categories from video data
         const categoryCount = {};
         
-        videos.forEach(video => {
+        videos.forEach((video, index) => {
             if (video.categories && Array.isArray(video.categories)) {
                 video.categories.forEach(category => {
                     // Only count non-empty categories
@@ -76,12 +80,12 @@ function processCategories(videos) {
     }
 }
 
-// Display categories dynamically
+// Display categories dynamically with enhanced animations
 function displayCategories() {
     const categoryGrid = document.getElementById('category-grid');
     if (categoryGrid) {
-        categoryGrid.innerHTML = categoryData.map(([name, count]) => `
-            <div class="category-card" data-category="${name}">
+        categoryGrid.innerHTML = categoryData.map(([name, count], index) => `
+            <div class="category-card animated-card" data-category="${name}" style="animation-delay: ${index * 0.1}s">
                 <div class="category-icon">
                     <i class="fas fa-tag"></i>
                 </div>
@@ -94,8 +98,12 @@ function displayCategories() {
         document.querySelectorAll('.category-card').forEach(card => {
             card.addEventListener('click', function() {
                 const categoryName = this.getAttribute('data-category');
-                // Redirect to category videos page
-                window.location.href = `category-videos.html?category=${encodeURIComponent(categoryName)}`;
+                // Add animation effect on click
+                this.classList.add('card-clicked');
+                setTimeout(() => {
+                    // Redirect to category videos page
+                    window.location.href = `category-videos.html?category=${encodeURIComponent(categoryName)}`;
+                }, 300);
             });
         });
     }
@@ -130,12 +138,12 @@ const staticCategories = [
     ["Uncensored", "154K"]
 ];
 
-// Function to display static categories as fallback
+// Function to display static categories as fallback with animations
 function displayStaticCategories() {
     const categoryGrid = document.getElementById('category-grid');
     if (categoryGrid) {
-        categoryGrid.innerHTML = staticCategories.map(([name, count]) => `
-            <div class="category-card" data-category="${name}">
+        categoryGrid.innerHTML = staticCategories.map(([name, count], index) => `
+            <div class="category-card animated-card" data-category="${name}" style="animation-delay: ${index * 0.1}s">
                 <div class="category-icon">
                     <i class="fas fa-tag"></i>
                 </div>
@@ -148,8 +156,67 @@ function displayStaticCategories() {
         document.querySelectorAll('.category-card').forEach(card => {
             card.addEventListener('click', function() {
                 const categoryName = this.getAttribute('data-category');
-                // Redirect to category videos page
-                window.location.href = `category-videos.html?category=${encodeURIComponent(categoryName)}`;
+                // Add animation effect on click
+                this.classList.add('card-clicked');
+                setTimeout(() => {
+                    // Redirect to category videos page
+                    window.location.href = `category-videos.html?category=${encodeURIComponent(categoryName)}`;
+                }, 300);
+            });
+        });
+    }
+}
+
+// Function to process tags from video data
+function processTags(videos) {
+    try {
+        // Count tags from video data
+        const tagCount = {};
+        
+        videos.forEach((video, index) => {
+            if (video.categories && Array.isArray(video.categories)) {
+                video.categories.forEach(category => {
+                    // Only count non-empty categories
+                    if (category && category.trim() !== '') {
+                        tagCount[category] = (tagCount[category] || 0) + 1;
+                    }
+                });
+            }
+        });
+        
+        // Convert to array and sort by count (descending), then take top 20
+        const sortedTags = Object.entries(tagCount)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 20);
+        
+        // Display tags
+        displayTags(sortedTags);
+    } catch (error) {
+        console.error('Error processing tags:', error);
+    }
+}
+
+// Function to display tags with animations
+function displayTags(tags) {
+    const tagsContainer = document.getElementById('tags-container');
+    if (tagsContainer) {
+        tagsContainer.innerHTML = tags.map((tag, index) => `
+            <div class="tag animated-tag" data-tag="${tag.name}" style="animation-delay: ${index * 0.05}s">
+                ${tag.name} (${tag.count})
+            </div>
+        `).join('');
+        
+        // Add click event listeners to tags
+        document.querySelectorAll('.tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                const tagName = this.getAttribute('data-tag');
+                // Add animation effect on click
+                this.classList.add('tag-clicked');
+                setTimeout(() => {
+                    // Redirect to category videos page
+                    window.location.href = `category-videos.html?category=${encodeURIComponent(tagName)}`;
+                }, 300);
             });
         });
     }
@@ -168,55 +235,11 @@ function createVideoCard(video) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
-    // Improved link handling - prioritize direct video links over redirect links
-    let externalUrl = detailUrl; // Default to detail_url
-    
-    // Check if we have a valid external URL
-    if (video.external_url && video.external_url.trim() !== '') {
-        // List of known redirect URLs that don't lead to actual videos
-        const invalidRedirects = [
-            'sortporn.com',
-            'bit.ly',
-            'lustyheroes.com',
-            'youfetishbitch.com',
-            'bemyhole.com',
-            'tsyndicate.com',
-            'theporndude.com',
-            'rpwmct.com',
-            '60fpsanimation.com',
-            'hentaismile.com',
-            'lesbian8.com',
-            'freeporn8.com',
-            'welcomix.com',
-            'fapality.com',
-            'mylust.com',
-            'eporner.com',
-            'xxxfree.watch',
-            'zlink7.com',
-            'adtng.com',
-            'ylmcash.com',
-            'aberatii.com',
-            'kimsaliese.com',
-            'whitehardcorp.com',
-            'brazzersnetwork.com'
-        ];
-        
-        // Check if the external URL is a valid direct link
-        const isInvalidRedirect = invalidRedirects.some(domain => video.external_url.includes(domain));
-        
-        // Use external URL if it's not a known redirect, or if detail_url is not available
-        if (!isInvalidRedirect || detailUrl === '#' || detailUrl === '') {
-            externalUrl = video.external_url;
-        }
-        // Otherwise, fall back to detail_url if it's available
-        else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-            externalUrl = detailUrl;
-        }
-    }
-    // If no external URL, ensure we have a valid detail URL
-    else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-        externalUrl = detailUrl;
-    }
+    // Always prioritize external_url over detail_url
+    // Only use detail_url as a fallback when external_url is empty or invalid
+    let externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+        ? video.external_url 
+        : detailUrl;
     
     // Additional validation for the final URL
     // If the URL is still invalid, use a fallback
@@ -225,12 +248,14 @@ function createVideoCard(video) {
         externalUrl = 'https://www.cartoonpornvideos.com/';
     }
     
-    // For demo purposes, we'll generate random durations, views, and dates
-    const durations = ["15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
+    // For demo purposes, we'll generate consistent durations, views, and dates based on video index
+    const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
     const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
     const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
     
-    const randomDuration = durations[Math.floor(Math.random() * durations.length)];
+    // Assign consistent duration based on video properties for filtering consistency
+    const durationIndex = (title.length + (detailUrl ? detailUrl.length : 0)) % durations.length;
+    const randomDuration = durations[durationIndex];
     const randomViews = views[Math.floor(Math.random() * views.length)];
     const randomDate = dates[Math.floor(Math.random() * dates.length)];
     
@@ -238,21 +263,11 @@ function createVideoCard(video) {
         <div class="video-card">
             <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';">
+                    <img src="${thumbnail}" alt="${title}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';">
                     <div class="video-duration">${randomDuration}</div>
                 </div>
                 <div class="video-info">
                     <div class="video-title">${title}</div>
-                    <div class="video-meta">
-                        <div class="video-views">
-                            <i class="fas fa-eye"></i>
-                            ${randomViews}
-                        </div>
-                        <div class="video-date">
-                            <i class="far fa-clock"></i>
-                            ${randomDate}
-                        </div>
-                    </div>
                 </div>
             </a>
         </div>
@@ -269,27 +284,42 @@ function handleSearch(query) {
 
 // Function to initialize the category page
 function init() {
-    // Load categories dynamically
-    loadCategoriesFromVideos();
+    // Display static categories immediately
+    displayStaticCategories();
     
-    // Set up search functionality
-    const searchInput = document.querySelector('.search-bar input');
-    const searchButton = document.querySelector('.search-bar button');
-    
-    if (searchButton && searchInput) {
-        searchButton.addEventListener('click', () => {
-            const query = searchInput.value.trim();
-            handleSearch(query);
-        });
+    // Add a small delay to ensure DOM is fully loaded
+    setTimeout(() => {
+        // Load categories dynamically
+        loadCategoriesFromVideos();
         
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        // Set up search functionality
+        const searchInput = document.querySelector('.search-bar input');
+        const searchButton = document.querySelector('.search-bar button');
+        
+        if (searchButton && searchInput) {
+            searchButton.addEventListener('click', () => {
                 const query = searchInput.value.trim();
                 handleSearch(query);
-            }
-        });
-    }
+            });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    handleSearch(query);
+                }
+            });
+        }
+    }, 100);
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
+
+// Fallback to static categories after 5 seconds if dynamic categories haven't loaded
+setTimeout(() => {
+    const categoryGrid = document.getElementById('category-grid');
+    if (categoryGrid && !categoryGrid.innerHTML) {
+        console.log('Falling back to static categories');
+        displayStaticCategories();
+    }
+}, 5000);

@@ -2,13 +2,12 @@
 let currentPage = 1;
 const videosPerPage = 36;
 let allVideos = [];
-let currentSortBy = 'views'; // Default sorting for popular page (changed from 'popular')
-let displayedVideoIds = new Set(); // Track displayed video IDs to prevent duplicates
+let currentSortBy = 'views'; // Default sorting for popular page
 let currentDurationFilter = 'any'; // Default duration filter
 let videosCache = null; // Cache for video data
 let isLoading = false; // Flag to prevent multiple simultaneous requests
 
-// Function to create video card HTML
+// Function to create video card HTML without numbering
 function createVideoCard(video) {
     // Default values for missing properties
     const title = video.title || 'Untitled Video';
@@ -17,59 +16,21 @@ function createVideoCard(video) {
     
     // Check if thumbnail URL is valid, if not use fallback
     if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http')) {
+        !thumbnail.startsWith('http') || thumbnail.trim() === '') {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
-    // Improved link handling - prioritize direct video links over redirect links
-    let externalUrl = detailUrl; // Default to detail_url
+    // Additional check for broken image URLs
+    const brokenImagePatterns = ['data:image', 'blob:', 'javascript:'];
+    if (brokenImagePatterns.some(pattern => thumbnail.startsWith(pattern))) {
+        thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+    }
     
-    // Check if we have a valid external URL
-    if (video.external_url && video.external_url.trim() !== '') {
-        // List of known redirect URLs that don't lead to actual videos
-        const invalidRedirects = [
-            'sortporn.com',
-            'bit.ly',
-            'lustyheroes.com',
-            'youfetishbitch.com',
-            'bemyhole.com',
-            'tsyndicate.com',
-            'theporndude.com',
-            'rpwmct.com',
-            '60fpsanimation.com',
-            'hentaismile.com',
-            'lesbian8.com',
-            'freeporn8.com',
-            'welcomix.com',
-            'fapality.com',
-            'mylust.com',
-            'eporner.com',
-            'xxxfree.watch',
-            'zlink7.com',
-            'adtng.com',
-            'ylmcash.com',
-            'aberatii.com',
-            'kimsaliese.com',
-            'whitehardcorp.com',
-            'brazzersnetwork.com'
-        ];
-        
-        // Check if the external URL is a valid direct link
-        const isInvalidRedirect = invalidRedirects.some(domain => video.external_url.includes(domain));
-        
-        // Use external URL if it's not a known redirect, or if detail_url is not available
-        if (!isInvalidRedirect || detailUrl === '#' || detailUrl === '') {
-            externalUrl = video.external_url;
-        }
-        // Otherwise, fall back to detail_url if it's available
-        else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-            externalUrl = detailUrl;
-        }
-    }
-    // If no external URL, ensure we have a valid detail URL
-    else if (detailUrl && detailUrl !== '#' && detailUrl.trim() !== '') {
-        externalUrl = detailUrl;
-    }
+    // Always prioritize external_url over detail_url
+    // Only use detail_url as a fallback when external_url is empty or invalid
+    let externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+        ? video.external_url 
+        : detailUrl;
     
     // Additional validation for the final URL
     // If the URL is still invalid, use a fallback
@@ -79,7 +40,6 @@ function createVideoCard(video) {
     }
     
     // For demo purposes, we'll generate random durations, views, and dates
-    // In a real app with a backend, this data would come from the database
     const durations = ["15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
     const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
     const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
@@ -92,21 +52,11 @@ function createVideoCard(video) {
         <div class="video-card">
             <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
                 <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';">
+                    <img src="${thumbnail}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';" onload="this.style.opacity='1';" style="opacity:0; transition: opacity 0.3s;">
                     <div class="video-duration">${randomDuration}</div>
                 </div>
                 <div class="video-info">
                     <div class="video-title">${title}</div>
-                    <div class="video-meta">
-                        <div class="video-views">
-                            <i class="fas fa-eye"></i>
-                            ${randomViews}
-                        </div>
-                        <div class="video-date">
-                            <i class="far fa-clock"></i>
-                            ${randomDate}
-                        </div>
-                    </div>
                 </div>
             </a>
         </div>
@@ -140,31 +90,27 @@ function sortVideos(videos, sortBy) {
     
     switch (sortBy) {
         case 'views':
-            // Sort by views - most views first (highest to lowest)
-            // Since we don't have actual view counts, we'll simulate this by shuffling
-            // In a real implementation, you would sort by actual view counts
-            return sortedVideos.sort(() => Math.random() - 0.5);
+            return sortedVideos.sort((a, b) => {
+                // Simple view comparison (in a real app, you'd have actual view counts)
+                return Math.random() - 0.5;
+            });
         case 'date':
-            // Sort by date - newest first (most recent to oldest)
-            // Since we don't have actual dates, we'll simulate this by shuffling
-            // In a real implementation, you would sort by actual upload dates
-            return sortedVideos.sort(() => Math.random() - 0.5);
+            return sortedVideos.sort((a, b) => {
+                // For date sorting
+                return Math.random() - 0.5;
+            });
         case 'duration':
-            // Sort by duration - longest first (longest to shortest)
-            // Since we don't have actual durations, we'll simulate this by shuffling
-            // In a real implementation, you would sort by actual durations
-            return sortedVideos.sort(() => Math.random() - 0.5);
+            return sortedVideos.sort((a, b) => {
+                // Simple duration comparison (in a real app, you'd have actual durations)
+                return Math.random() - 0.5;
+            });
         default:
-            // Default order (shuffle for variety)
             return sortedVideos.sort(() => Math.random() - 0.5);
     }
 }
 
 // Function to filter videos by duration
 function filterVideosByDuration(videos, durationFilter) {
-    // For demo purposes, we'll return all videos since we don't have actual duration data
-    // In a real implementation, you would filter based on actual video duration
-    // But we'll simulate some filtering for demonstration
     if (durationFilter === 'any') {
         return videos;
     }
@@ -173,13 +119,10 @@ function filterVideosByDuration(videos, durationFilter) {
     const filteredVideos = [...videos];
     switch (durationFilter) {
         case 'short':
-            // Return shortest videos first
             return filteredVideos.sort(() => Math.random() - 0.5);
         case 'medium':
-            // Return medium length videos
             return filteredVideos.sort(() => Math.random() - 0.5);
         case 'long':
-            // Return longest videos first
             return filteredVideos.sort(() => Math.random() - 0.5);
         default:
             return videos;
@@ -205,8 +148,8 @@ async function loadPopularVideos() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        // Use the smaller videos_cleaned.json file instead of the large videos.json
-        const response = await fetch('videos_cleaned.json', { signal: controller.signal });
+        // Use the videos.json file
+        const response = await fetch('videos.json', { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (!response.ok) {
@@ -221,6 +164,11 @@ async function loadPopularVideos() {
         processVideos(videos);
     } catch (error) {
         console.error('Error loading popular videos:', error);
+        // Show error message to user
+        const popularContainer = document.getElementById('popular-videos');
+        if (popularContainer) {
+            popularContainer.innerHTML = '<p class="error-message">Failed to load videos. Please try again later.</p>';
+        }
     } finally {
         isLoading = false;
     }
@@ -244,19 +192,18 @@ function processVideos(videos) {
         // Sort videos based on current sort setting
         const sortedVideos = sortVideos(durationFilteredVideos, currentSortBy);
         
-        // Shuffle videos to avoid repetition
-        const shuffledVideos = [...sortedVideos].sort(() => 0.5 - Math.random());
-        
-        // Take a larger sample and reshuffle for better distribution
-        allVideos = shuffledVideos.slice(0, 3000); // Load more videos for pagination
-        
-        // Reset displayed video IDs
-        displayedVideoIds.clear();
+        // Store videos to maintain consistency across pagination (without reshuffling)
+        allVideos = sortedVideos.slice(0, 3000); // Load more videos for pagination
         
         // Display first page of videos
         displayVideos();
     } catch (error) {
         console.error('Error processing popular videos:', error);
+        // Show error message to user
+        const popularContainer = document.getElementById('popular-videos');
+        if (popularContainer) {
+            popularContainer.innerHTML = '<p class="error-message">Error processing videos. Please try again later.</p>';
+        }
     }
 }
 
@@ -268,32 +215,98 @@ function displayVideos() {
     
     const popularContainer = document.getElementById('popular-videos');
     if (popularContainer) {
-        // Create video cards for videos that haven't been displayed yet
+        // Create video cards for videos
         const videoCards = [];
         for (const video of videosToDisplay) {
-            // Create a unique ID for the video based on its properties
-            const videoId = `${video.title}-${video.thumbnail}`;
-            
-            // Only add the video if it hasn't been displayed yet
-            if (!displayedVideoIds.has(videoId)) {
-                displayedVideoIds.add(videoId);
-                videoCards.push(createVideoCard(video));
-            }
+            videoCards.push(createVideoCard(video));
         }
         
-        // If this is the first page, replace content, otherwise append
-        if (currentPage === 1) {
-            popularContainer.innerHTML = videoCards.join('');
-        } else {
-            popularContainer.innerHTML += videoCards.join('');
+        // Replace content with video cards
+        popularContainer.innerHTML = videoCards.join('');
+        
+        // If no videos to display, show a message
+        if (videoCards.length === 0 && currentPage === 1) {
+            popularContainer.innerHTML = '<p class="no-videos-message">No videos found.</p>';
+        }
+    }
+    
+    // Update pagination controls
+    updatePagination();
+}
+
+// Function to go to a specific page
+function goToPage(pageNumber) {
+    if (pageNumber >= 1 && pageNumber <= Math.ceil(allVideos.length / videosPerPage)) {
+        currentPage = pageNumber;
+        displayVideos();
+        updatePagination();
+        
+        // Scroll to top of video grid
+        const videoGrid = document.getElementById('popular-videos');
+        if (videoGrid) {
+            videoGrid.scrollIntoView({ behavior: 'smooth' });
         }
     }
 }
 
-// Function to load more videos
-function loadMoreVideos() {
-    currentPage++;
-    displayVideos();
+// Function to update pagination controls with numbered buttons
+function updatePagination() {
+    const totalPages = Math.ceil(allVideos.length / videosPerPage);
+    const paginationContainer = document.getElementById('pagination-controls');
+    
+    if (paginationContainer && totalPages > 1) {
+        let paginationHTML = '';
+        
+        // Previous button
+        if (currentPage > 1) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage - 1})">Previous</button>`;
+        }
+        
+        // Numbered page buttons
+        const maxVisiblePages = 10;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // First page button (if not already shown)
+        if (startPage > 1) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) {
+                paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+        }
+        
+        // Page number buttons
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                paginationHTML += `<button class="btn btn-primary active" disabled>${i}</button>`;
+            } else {
+                paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${i})">${i}</button>`;
+            }
+        }
+        
+        // Last page button (if not already shown)
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        
+        // Next button
+        if (currentPage < totalPages) {
+            paginationHTML += `<button class="btn btn-secondary" onclick="goToPage(${currentPage + 1})">Next</button>`;
+        }
+        
+        paginationContainer.innerHTML = paginationHTML;
+    } else if (paginationContainer) {
+        // Hide pagination if there's only one page
+        paginationContainer.innerHTML = '';
+    }
 }
 
 // Function to handle search
@@ -304,27 +317,31 @@ function handleSearch(query) {
     }
 }
 
-// Function to handle sort filter changes
+// Function to handle sort filter changes - FIXED to use cached data
 function handleSortChange() {
     const sortFilter = document.getElementById('sort-filter');
     if (sortFilter) {
         currentSortBy = sortFilter.value;
         // Reset to first page when sorting
         currentPage = 1;
-        // Re-load videos with new sort order
-        loadPopularVideos();
+        // Re-process cached videos with new sort order instead of reloading
+        if (videosCache) {
+            processVideos(videosCache);
+        }
     }
 }
 
-// Function to handle duration filter changes (updated function)
+// Function to handle duration filter changes - FIXED to use cached data
 function handleDurationChange() {
     const durationFilter = document.getElementById('duration-filter');
     if (durationFilter) {
         currentDurationFilter = durationFilter.value;
         // Reset to first page when filtering
         currentPage = 1;
-        // Re-load videos with new duration filter
-        loadPopularVideos();
+        // Re-process cached videos with new duration filter instead of reloading
+        if (videosCache) {
+            processVideos(videosCache);
+        }
     }
 }
 
@@ -351,14 +368,6 @@ function init() {
         });
     }
     
-    // Set up load more button
-    const loadMoreButton = document.getElementById('load-more');
-    if (loadMoreButton) {
-        loadMoreButton.addEventListener('click', () => {
-            loadMoreVideos();
-        });
-    }
-    
     // Set up sort filter
     const sortFilter = document.getElementById('sort-filter');
     if (sortFilter) {
@@ -373,4 +382,9 @@ function init() {
 }
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    // DOM is already loaded
+    init();
+}
