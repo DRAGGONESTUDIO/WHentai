@@ -19,12 +19,181 @@ function removeDuplicateVideos(videos) {
     });
 }
 
+// Enhanced thumbnail validation function with comprehensive placeholder detection
+function isValidThumbnail(thumbnailUrl) {
+    // Check if thumbnail exists and is not empty
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string' || thumbnailUrl.trim() === '') {
+        return false;
+    }
+    
+    // Trim whitespace
+    const trimmedUrl = thumbnailUrl.trim();
+    
+    // Check if it's a valid URL format
+    try {
+        new URL(trimmedUrl);
+    } catch (e) {
+        return false;
+    }
+    
+    // Convert to lowercase for case-insensitive matching
+    const thumbnailLower = trimmedUrl.toLowerCase();
+    
+    // Check for common placeholder URL patterns
+    if (thumbnailLower.startsWith('data:image') || 
+        thumbnailLower.startsWith('blob:') || 
+        thumbnailLower.startsWith('javascript:')) {
+        return false;
+    }
+    
+    // Comprehensive placeholder detection
+    const placeholderPatterns = [
+        'placehold.co',
+        'placeholder',
+        'no thumbnail',
+        'no image',
+        'image not found',
+        'thumbnail not available',
+        'not available',
+        'default',
+        'missing',
+        'error',
+        'undefined',
+        'null',
+        'blank',
+        'empty'
+    ];
+    
+    // Check URL and decoded URL parameters for placeholder text
+    try {
+        // Check the URL itself
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+        
+        // Decode URL parameters and check for placeholder text
+        const urlObj = new URL(trimmedUrl);
+        const searchParams = urlObj.searchParams;
+        
+        // Check all URL parameters for placeholder text
+        for (const [key, value] of searchParams) {
+            const paramValueLower = value.toLowerCase();
+            for (const pattern of placeholderPatterns) {
+                if (paramValueLower.includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        // Also check the full search string
+        const searchString = urlObj.search.toLowerCase();
+        for (const pattern of placeholderPatterns) {
+            if (searchString.includes(pattern)) {
+                return false;
+            }
+        }
+    } catch (e) {
+        // If URL parsing fails, just check the string
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// Enhanced video filtering function
+function filterVideosWithValidThumbnails(videos) {
+    if (!Array.isArray(videos)) {
+        console.error('Invalid videos array provided to filter function');
+        return [];
+    }
+    
+    return videos.filter(video => {
+        // Video must have a title
+        if (!video.title || typeof video.title !== 'string' || video.title.trim() === '') {
+            return false;
+        }
+        
+        // Video must have a valid thumbnail
+        if (!isValidThumbnail(video.thumbnail)) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
+// Enhanced video card creation function with robust error handling
+function createVideoCard(video, index = 0) {
+    // Validate input
+    if (!video) {
+        console.error('Invalid video object provided to createVideoCard');
+        return '';
+    }
+    
+    // Default values for missing properties
+    const title = (video.title && typeof video.title === 'string') ? video.title.trim() : 'Untitled Video';
+    const thumbnail = (video.thumbnail && typeof video.thumbnail === 'string') ? video.thumbnail.trim() : '';
+    const detailUrl = (video.detail_url && typeof video.detail_url === 'string') ? video.detail_url.trim() : '#';
+    
+    // Always prioritize external_url over detail_url
+    // Only use detail_url as a fallback when external_url is empty or invalid
+    let externalUrl = detailUrl;
+    if (video.external_url && 
+        typeof video.external_url === 'string' && 
+        video.external_url.trim() !== '' && 
+        video.external_url !== '#') {
+        externalUrl = video.external_url.trim();
+    }
+    
+    // Handle thumbnail with robust error handling
+    let thumbnailHTML = '';
+    if (isValidThumbnail(thumbnail)) {
+        // Valid thumbnail - use it with error handling
+        thumbnailHTML = `
+            <img src="${thumbnail}" alt="${title}" 
+                 loading="lazy"
+                 onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=Thumbnail+Error'; this.onerror=null;"
+                 onload="this.style.opacity='1'; this.style.visibility='visible';">
+        `;
+    } else {
+        // No valid thumbnail - this shouldn't happen since we filtered videos, but just in case
+        thumbnailHTML = `
+            <img src="https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail" alt="${title}" 
+                 loading="lazy"
+                 style="opacity:1; visibility:visible;">
+        `;
+    }
+    
+    // Create the complete video card HTML
+    return `
+        <div class="video-card" data-video-index="${index}">
+            <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
+                <div class="video-thumbnail">
+                    ${thumbnailHTML}
+                </div>
+                <div class="video-info">
+                    <div class="video-title">${title}</div>
+                </div>
+            </a>
+        </div>
+    `;
+}
+
 // Fetch videos from JSON file
 fetch('videos.json')
     .then(response => response.json())
     .then(data => {
+        // Filter out videos without valid thumbnails
+        const videosWithThumbnails = filterVideosWithValidThumbnails(data);
+        
         // Remove duplicate videos
-        const uniqueVideos = removeDuplicateVideos(data);
+        const uniqueVideos = removeDuplicateVideos(videosWithThumbnails);
         
         allVideos = uniqueVideos;
         // Remove the first few non-video entries if they exist
@@ -190,59 +359,6 @@ function handleSearch(query) {
         // Redirect to search page with query
         window.location.href = `search.html?q=${encodeURIComponent(query)}`;
     }
-}
-
-// Function to create video card HTML with proper metadata display
-function createVideoCard(video, index = 0) {
-    // Default values for missing properties
-    const title = video.title || 'Untitled Video';
-    let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
-    const detailUrl = video.detail_url || '#';
-    
-    // Check if thumbnail URL is valid, if not use fallback
-    if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http')) {
-        thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
-    }
-    
-    // Always prioritize external_url over detail_url
-    // Only use detail_url as a fallback when external_url is empty or invalid
-    let externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
-        ? video.external_url 
-        : detailUrl;
-    
-    // Additional validation for the final URL
-    // If the URL is still invalid, use a fallback
-    if (!externalUrl || externalUrl === '#' || externalUrl.trim() === '' || 
-        !externalUrl.startsWith('http')) {
-        externalUrl = 'https://www.cartoonpornvideos.com/';
-    }
-    
-    // For demo purposes, we'll generate consistent durations, views, and dates based on video index
-    const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
-    const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
-    const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
-    
-    // Assign consistent duration based on video properties for filtering consistency
-    const durationSeed = title.length + (detailUrl ? detailUrl.length : 0) + index;
-    const durationIndex = durationSeed % durations.length;
-    const randomDuration = durations[durationIndex];
-    const randomViews = views[Math.floor(Math.random() * views.length)];
-    const randomDate = dates[Math.floor(Math.random() * dates.length)];
-    
-    return `
-        <div class="video-card">
-            <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
-                <div class="video-thumbnail">
-                    <img src="${thumbnail}" alt="${title}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';">
-                    <div class="video-duration">${randomDuration}</div>
-                </div>
-                <div class="video-info">
-                    <div class="video-title">${title}</div>
-                </div>
-            </a>
-        </div>
-    `;
 }
 
 // Set up search functionality

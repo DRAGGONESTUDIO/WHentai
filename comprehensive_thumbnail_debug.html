@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Thumbnail Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-card {
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #222;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+            width: 300px;
+            vertical-align: top;
+            margin: 10px;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-title {
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 14px;
+            height: 40px;
+            overflow: hidden;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #ff9000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #ff7700;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #222;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #2c552c;
+            border: 1px solid #4caf50;
+        }
+        .error {
+            background-color: #552c2c;
+            border: 1px solid #f44336;
+        }
+        .stats {
+            background-color: #1e3a5f;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .debug-info {
+            background-color: #3a3a1e;
+            border: 1px solid #f3d621;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Comprehensive Thumbnail Debug</h1>
+        <p>This page will help us identify and fix the thumbnail issues once and for all.</p>
+        
+        <div class="test-section">
+            <h2>Thumbnail Analysis</h2>
+            <button id="analyze-thumbnails">Analyze Thumbnails</button>
+            <div id="analysis-results"></div>
+            <div id="thumbnail-samples"></div>
+        </div>
+    </div>
+
+    <script>
+        // Function to check if a thumbnail is valid (not a placeholder)
+        function hasValidThumbnail(video) {
+            // Check if thumbnail exists and is not empty
+            if (!video.thumbnail || video.thumbnail.trim() === '') {
+                return false;
+            }
+            
+            // Check if thumbnail is a placeholder image
+            const placeholderPatterns = [
+                'placehold.co',
+                'placeholder',
+                'no thumbnail',
+                'no image',
+                'image not found',
+                'thumbnail not available'
+            ];
+            
+            const thumbnailLower = video.thumbnail.toLowerCase();
+            return !placeholderPatterns.some(pattern => thumbnailLower.includes(pattern));
+        }
+        
+        // Function to create video card HTML with enhanced error handling
+        function createVideoCard(video, index = 0) {
+            // Default values for missing properties
+            const title = video.title || 'Untitled Video';
+            const thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            const detailUrl = video.detail_url || '#';
+            
+            // Always prioritize external_url over detail_url
+            // Only use detail_url as a fallback when external_url is empty or invalid
+            const externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+                ? video.external_url 
+                : detailUrl;
+            
+            // Enhanced thumbnail handling with better error handling
+            return `
+                <div class="video-card">
+                    <a href="${externalUrl}" target="_blank" rel="noopener noreferrer">
+                        <div class="video-thumbnail">
+                            <img src="${thumbnail}" alt="${title}" 
+                                 onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=Thumbnail+Error'; this.onerror=null;"
+                                 onload="this.style.opacity='1';">
+                        </div>
+                        <div class="video-info">
+                            <div class="video-title">${title}</div>
+                        </div>
+                    </a>
+                </div>
+            `;
+        }
+        
+        // Function to analyze thumbnails
+        function analyzeThumbnails() {
+            const resultsContainer = document.getElementById('analysis-results');
+            const samplesContainer = document.getElementById('thumbnail-samples');
+            
+            resultsContainer.innerHTML = '<div class="loading">Loading and analyzing videos...</div>';
+            samplesContainer.innerHTML = '';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    // Categorize videos
+                    const validThumbnails = [];
+                    const placeholderThumbnails = [];
+                    const emptyThumbnails = [];
+                    
+                    videos.forEach(video => {
+                        if (!video.thumbnail || video.thumbnail.trim() === '') {
+                            emptyThumbnails.push(video);
+                        } else if (hasValidThumbnail(video)) {
+                            validThumbnails.push(video);
+                        } else {
+                            placeholderThumbnails.push(video);
+                        }
+                    });
+                    
+                    // Show statistics
+                    const totalVideos = videos.length;
+                    const validCount = validThumbnails.length;
+                    const placeholderCount = placeholderThumbnails.length;
+                    const emptyCount = emptyThumbnails.length;
+                    
+                    // Display results
+                    resultsContainer.innerHTML = `
+                        <div class="result success">
+                            <h3>Thumbnail Analysis Results:</h3>
+                            <div class="stats">
+                                <p><strong>Total videos:</strong> ${totalVideos}</p>
+                                <p><strong>Videos with valid thumbnails:</strong> ${validCount} (${((validCount/totalVideos)*100).toFixed(2)}%)</p>
+                                <p><strong>Videos with placeholder thumbnails:</strong> ${placeholderCount} (${((placeholderCount/totalVideos)*100).toFixed(2)}%)</p>
+                                <p><strong>Videos with empty thumbnails:</strong> ${emptyCount} (${((emptyCount/totalVideos)*100).toFixed(2)}%)</p>
+                            </div>
+                            <div class="debug-info">
+// Filtering logic applied:
+// 1. Videos with empty thumbnails: ${emptyCount}
+// 2. Videos with placeholder thumbnails: ${placeholderCount}
+// 3. Videos with valid thumbnails: ${validCount}
+// Only showing videos with valid thumbnails (filtered out ${placeholderCount + emptyCount} videos)
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show samples of each category
+                    let sampleHTML = '<h3>Thumbnail Samples:</h3>';
+                    
+                    // Valid thumbnails sample
+                    if (validThumbnails.length > 0) {
+                        sampleHTML += '<h4>Valid Thumbnails (First 6):</h4>';
+                        const validSample = validThumbnails.slice(0, 6);
+                        sampleHTML += validSample.map((video, index) => createVideoCard(video, index)).join('');
+                    }
+                    
+                    // Placeholder thumbnails sample
+                    if (placeholderThumbnails.length > 0) {
+                        sampleHTML += '<h4>Placeholder Thumbnails (First 6):</h4>';
+                        const placeholderSample = placeholderThumbnails.slice(0, 6);
+                        sampleHTML += placeholderSample.map((video, index) => createVideoCard(video, index)).join('');
+                    }
+                    
+                    // Empty thumbnails sample
+                    if (emptyThumbnails.length > 0) {
+                        sampleHTML += '<h4>Empty Thumbnails (First 6):</h4>';
+                        const emptySample = emptyThumbnails.slice(0, 6);
+                        sampleHTML += emptySample.map((video, index) => createVideoCard(video, index)).join('');
+                    }
+                    
+                    samplesContainer.innerHTML = sampleHTML;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsContainer.innerHTML = `
+                        <div class="result error">
+                            <h3>Error Loading Videos:</h3>
+                            <p>${error.message}</p>
+                            <p>Please check that videos.json exists and is accessible.</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Event listeners
+        document.getElementById('analyze-thumbnails').addEventListener('click', analyzeThumbnails);
+        
+        // Auto-run analysis when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(analyzeThumbnails, 1000);
+        });
+    </script>
+</body>
+</html>

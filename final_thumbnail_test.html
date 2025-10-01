@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Thumbnail Solution Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #222 0%, #1a1a1a 100%);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .video-card {
+            background: linear-gradient(135deg, #222 0%, #1a1a1a 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid #333;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 144, 0, 0.3);
+            border-color: #ff9000;
+        }
+        .video-thumbnail {
+            position: relative;
+            height: 180px;
+            overflow: hidden;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+        .video-card:hover .video-thumbnail img {
+            transform: scale(1.05);
+        }
+        .video-info {
+            padding: 15px;
+        }
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #fff;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        .video-card a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff9000 0%, #ff7700 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 144, 0, 0.3);
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 144, 0, 0.5);
+        }
+        .stats {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1a2a4a 100%);
+            border: 1px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+        }
+        .loading-message, .error-message, .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .loading-message {
+            background: linear-gradient(135deg, #333 0%, #222 100%);
+            color: #ff9000;
+        }
+        .error-message {
+            background: linear-gradient(135deg, #552c2c 0%, #442222 100%);
+            color: #ff6b6b;
+        }
+        .no-results {
+            background: linear-gradient(135deg, #3a3a1e 0%, #2a2a1e 100%);
+            color: #f3d621;
+        }
+        .debug-info {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Final Thumbnail Solution Test</h1>
+            <p>This page demonstrates the definitive fix for all thumbnail issues</p>
+        </div>
+        
+        <div class="controls">
+            <button id="load-videos">Load Videos with Valid Thumbnails Only</button>
+        </div>
+        
+        <div class="stats" id="statistics">
+            <h3>Statistics</h3>
+            <p>Click the button above to load and analyze videos</p>
+        </div>
+        
+        <div class="video-grid" id="video-grid">
+            <div class="loading-message">
+                <h3>Ready to Load Videos</h3>
+                <p>Click the "Load Videos" button above to begin</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the final thumbnail solution -->
+    <script src="final_thumbnail_solution.js"></script>
+    
+    <script>
+        // Function to update statistics display
+        function updateStatistics(stats) {
+            const statsContainer = document.getElementById('statistics');
+            statsContainer.innerHTML = `
+                <h3>Thumbnail Analysis Results</h3>
+                <div class="debug-info">${JSON.stringify(stats, null, 2)}</div>
+                <p><strong>Total videos processed:</strong> ${stats.totalVideos}</p>
+                <p><strong>Videos with valid thumbnails:</strong> ${stats.validThumbnails} (${stats.validPercentage.toFixed(2)}%)</p>
+                <p><strong>Videos filtered out:</strong> ${stats.filteredOut} (${stats.filteredPercentage.toFixed(2)}%)</p>
+                <p><strong>Reasons for filtering:</strong></p>
+                <ul>
+                    <li>Empty thumbnails: ${stats.emptyThumbnails}</li>
+                    <li>Placeholder thumbnails: ${stats.placeholderThumbnails}</li>
+                    <li>Invalid URLs: ${stats.invalidUrls}</li>
+                    <li>Missing titles: ${stats.missingTitles}</li>
+                </ul>
+            `;
+        }
+        
+        // Function to load and display videos using the final solution
+        function loadVideosWithFinalSolution() {
+            const videoGrid = document.getElementById('video-grid');
+            videoGrid.innerHTML = '<div class="loading-message"><h3>Loading and analyzing videos...</h3><p>This may take a moment</p></div>';
+            
+            // Fetch videos from JSON file
+            fetch('videos.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Validate data
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format: expected array');
+                    }
+                    
+                    // Statistics tracking
+                    const stats = {
+                        totalVideos: data.length,
+                        validThumbnails: 0,
+                        filteredOut: 0,
+                        emptyThumbnails: 0,
+                        placeholderThumbnails: 0,
+                        invalidUrls: 0,
+                        missingTitles: 0,
+                        validPercentage: 0,
+                        filteredPercentage: 0
+                    };
+                    
+                    // Categorize videos
+                    const validVideos = [];
+                    const invalidVideos = [];
+                    
+                    data.forEach(video => {
+                        // Check for missing title
+                        if (!video.title || typeof video.title !== 'string' || video.title.trim() === '') {
+                            stats.missingTitles++;
+                            invalidVideos.push({video, reason: 'missing_title'});
+                            return;
+                        }
+                        
+                        // Check for empty thumbnail
+                        if (!video.thumbnail || typeof video.thumbnail !== 'string' || video.thumbnail.trim() === '') {
+                            stats.emptyThumbnails++;
+                            invalidVideos.push({video, reason: 'empty_thumbnail'});
+                            return;
+                        }
+                        
+                        // Check thumbnail validity
+                        if (!finalThumbnailSolution.isValidThumbnail(video.thumbnail)) {
+                            stats.placeholderThumbnails++;
+                            invalidVideos.push({video, reason: 'placeholder_thumbnail'});
+                            return;
+                        }
+                        
+                        // Video is valid
+                        validVideos.push(video);
+                        stats.validThumbnails++;
+                    });
+                    
+                    // Calculate percentages
+                    stats.filteredOut = stats.emptyThumbnails + stats.placeholderThumbnails + stats.invalidUrls + stats.missingTitles;
+                    stats.validPercentage = (stats.validThumbnails / stats.totalVideos) * 100;
+                    stats.filteredPercentage = (stats.filteredOut / stats.totalVideos) * 100;
+                    
+                    // Update statistics display
+                    updateStatistics(stats);
+                    
+                    // Check if we have any valid videos
+                    if (validVideos.length === 0) {
+                        videoGrid.innerHTML = `
+                            <div class="no-results">
+                                <h3>No Valid Videos Found</h3>
+                                <p>All videos were filtered out due to invalid thumbnails or missing data.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Limit to first 50 videos for performance
+                    const displayVideos = validVideos.slice(0, 50);
+                    
+                    // Generate HTML for video cards using the final solution
+                    const videoHTML = displayVideos.map((video, index) => 
+                        finalThumbnailSolution.createVideoCard(video, index)
+                    ).join('');
+                    
+                    // Display videos
+                    videoGrid.innerHTML = videoHTML;
+                    
+                    console.log('Final thumbnail solution applied successfully');
+                    console.log(`Showing ${displayVideos.length} videos with valid thumbnails`);
+                })
+                .catch(error => {
+                    console.error('Error in final solution:', error);
+                    videoGrid.innerHTML = `
+                        <div class="error-message">
+                            <h3>Error Loading Videos</h3>
+                            <p>${error.message}</p>
+                            <p>Please check that videos.json exists and is accessible.</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Event listeners
+        document.getElementById('load-videos').addEventListener('click', loadVideosWithFinalSolution);
+        
+        // Auto-run on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Final thumbnail solution test page loaded');
+            console.log('Click "Load Videos" to test the solution');
+        });
+    </script>
+</body>
+</html>

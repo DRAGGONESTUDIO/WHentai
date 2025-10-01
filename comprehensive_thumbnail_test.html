@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Thumbnail Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .video-thumbnail .no-thumbnail {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+        }
+        .video-title {
+            font-weight: bold;
+            margin: 10px 0;
+            flex-grow: 1;
+        }
+        .url-info {
+            margin: 5px 0;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Comprehensive Thumbnail Test</h1>
+        <p>This page tests the complete thumbnail handling system.</p>
+        
+        <div class="test-section">
+            <h2>Direct Thumbnail Test</h2>
+            <button id="test-direct">Test Direct Thumbnails</button>
+            <div id="direct-results" class="grid"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>JavaScript Validation Test</h2>
+            <button id="test-js">Test JavaScript Validation</button>
+            <div id="js-results" class="grid"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Error Handling Test</h2>
+            <button id="test-error">Test Error Handling</button>
+            <div id="error-results" class="grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Function that replicates the exact validation logic used in JS files
+        function validateThumbnail(thumbnail) {
+            // Check if thumbnail URL is valid, if not use fallback
+            if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
+                !thumbnail.startsWith('http') || thumbnail.trim() === '') {
+                return 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            }
+            
+            // Additional check for broken image URLs
+            const brokenImagePatterns = ['data:image', 'blob:', 'javascript:'];
+            if (brokenImagePatterns.some(pattern => thumbnail.startsWith(pattern))) {
+                return 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            }
+            
+            return thumbnail;
+        }
+        
+        // Function to create a video card with enhanced error handling
+        function createVideoCard(video, index = 0) {
+            // Default values for missing properties
+            const title = video.title || 'Untitled Video';
+            let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            const detailUrl = video.detail_url || '#';
+            
+            // Validate thumbnail
+            thumbnail = validateThumbnail(thumbnail);
+            
+            // Always prioritize external_url over detail_url
+            // Only use detail_url as a fallback when external_url is empty or invalid
+            let externalUrl = video.external_url && video.external_url.trim() !== '' && video.external_url !== '#' 
+                ? video.external_url 
+                : detailUrl;
+            
+            // Additional validation for the final URL
+            // If the URL is still invalid, use a fallback
+            if (!externalUrl || externalUrl === '#' || externalUrl.trim() === '' || 
+                !externalUrl.startsWith('http')) {
+                externalUrl = 'https://www.cartoonpornvideos.com/';
+            }
+            
+            // For demo purposes, we'll generate consistent durations, views, and dates based on video index
+            const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
+            const views = ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"];
+            const dates = ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"];
+            
+            // Assign consistent duration based on video properties for filtering consistency
+            const durationSeed = title.length + (detailUrl ? detailUrl.length : 0) + index;
+            const durationIndex = durationSeed % durations.length;
+            const randomDuration = durations[durationIndex];
+            const randomViews = views[Math.floor(Math.random() * views.length)];
+            const randomDate = dates[Math.floor(Math.random() * dates.length)];
+            
+            return `
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <img src="${thumbnail}" alt="${title}" loading="lazy" 
+                             onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';"
+                             onload="this.style.opacity='1';">
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">${title}</div>
+                        <div class="url-info">
+                            <strong>Duration:</strong> ${randomDuration}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Function to test direct thumbnails
+        function testDirectThumbnails(videos) {
+            const container = document.getElementById('direct-results');
+            const testVideos = videos.slice(0, 8);
+            
+            container.innerHTML = testVideos.map((video, index) => {
+                const isValid = video.thumbnail && video.thumbnail.startsWith('http') && 
+                               !video.thumbnail.includes('undefined') && !video.thumbnail.includes('null');
+                
+                return `
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            ${isValid ? 
+                                `<img src="${video.thumbnail}" alt="${video.title}" loading="lazy" 
+                                      onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';"
+                                      onload="this.style.opacity='1';">` :
+                                `<div class="no-thumbnail">Invalid Thumbnail</div>`
+                            }
+                        </div>
+                        <div class="video-title">${video.title}</div>
+                        <div class="url-info"><strong>URL:</strong> ${video.thumbnail}</div>
+                        <div class="status ${isValid ? 'success' : 'error'}">
+                            Status: ${isValid ? 'Valid' : 'Invalid'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Function to test JavaScript validation
+        function testJSValidation(videos) {
+            const container = document.getElementById('js-results');
+            const testVideos = videos.slice(0, 8);
+            
+            container.innerHTML = testVideos.map((video, index) => {
+                const original = video.thumbnail;
+                const validated = validateThumbnail(original);
+                const isFallback = validated.includes('placehold.co');
+                
+                return `
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="${validated}" alt="${video.title}" loading="lazy" 
+                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';"
+                                 onload="this.style.opacity='1';">
+                        </div>
+                        <div class="video-title">${video.title}</div>
+                        <div class="url-info"><strong>Original:</strong> ${original}</div>
+                        <div class="url-info"><strong>Validated:</strong> ${validated}</div>
+                        <div class="status ${isFallback ? 'warning' : 'success'}">
+                            Validation: ${isFallback ? 'Fallback Used' : 'Passed'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Function to test error handling
+        function testErrorHandling() {
+            const container = document.getElementById('error-results');
+            
+            // Test cases with different types of invalid URLs
+            const testCases = [
+                {title: 'Valid Thumbnail', thumbnail: 'https://c1.ttcache.com/thumbnail/test/1.jpg'},
+                {title: 'Empty String', thumbnail: ''},
+                {title: 'Null Value', thumbnail: null},
+                {title: 'Undefined Value', thumbnail: undefined},
+                {title: 'String "undefined"', thumbnail: 'undefined'},
+                {title: 'String "null"', thumbnail: 'null'},
+                {title: 'Missing Protocol', thumbnail: 'www.example.com/thumbnail.jpg'},
+                {title: 'Invalid Format', thumbnail: '://invalid-url'}
+            ];
+            
+            container.innerHTML = testCases.map((testCase, index) => {
+                const thumbnail = testCase.thumbnail;
+                const validated = validateThumbnail(thumbnail);
+                const isFallback = validated.includes('placehold.co');
+                
+                return `
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <img src="${validated}" alt="${testCase.title}" loading="lazy" 
+                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-thumbnail\'>No Thumbnail</div>';"
+                                 onload="this.style.opacity='1';">
+                        </div>
+                        <div class="video-title">${testCase.title}</div>
+                        <div class="url-info"><strong>Input:</strong> ${thumbnail}</div>
+                        <div class="url-info"><strong>Output:</strong> ${validated}</div>
+                        <div class="status ${isFallback ? 'warning' : 'success'}">
+                            Result: ${isFallback ? 'Fallback Used' : 'Valid'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Event listeners
+        document.getElementById('test-direct').addEventListener('click', () => {
+            const container = document.getElementById('direct-results');
+            container.innerHTML = '<div class="loading">Loading videos...</div>';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    testDirectThumbnails(videos);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    container.innerHTML = `<div class="error-message">Error loading videos: ${error.message}</div>`;
+                });
+        });
+        
+        document.getElementById('test-js').addEventListener('click', () => {
+            const container = document.getElementById('js-results');
+            container.innerHTML = '<div class="loading">Loading videos...</div>';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    testJSValidation(videos);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    container.innerHTML = `<div class="error-message">Error loading videos: ${error.message}</div>`;
+                });
+        });
+        
+        document.getElementById('test-error').addEventListener('click', testErrorHandling);
+        
+        // Initialize with a sample test
+        console.log('Comprehensive thumbnail test page loaded');
+    </script>
+</body>
+</html>

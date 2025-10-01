@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra Simple Thumbnail Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+            width: 300px;
+            vertical-align: top;
+            margin: 10px;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-title {
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 14px;
+            height: 40px;
+            overflow: hidden;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ultra Simple Thumbnail Test</h1>
+        <p>This page tests the ultra-simple thumbnail handling approach.</p>
+        
+        <div class="test-section">
+            <h2>Real Video Data Test</h2>
+            <button id="test-real">Load Real Videos</button>
+            <div id="real-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Ultra-simple function to create video card HTML
+        function createVideoCard(video, index = 0) {
+            // Default values for missing properties
+            const title = video.title || 'Untitled Video';
+            const thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            
+            // Ultra-simple thumbnail handling with no fancy effects
+            return `
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=Thumbnail+Error';">
+                    </div>
+                    <div class="video-title">${title}</div>
+                </div>
+            `;
+        }
+        
+        // Function to test real video data
+        function testRealVideos() {
+            const container = document.getElementById('real-results');
+            container.innerHTML = '<div class="loading">Loading videos...</div>';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    // Test with a small sample
+                    const testVideos = videos.slice(0, 12);
+                    
+                    // Create video cards
+                    const videoHTML = testVideos.map((video, index) => createVideoCard(video, index)).join('');
+                    
+                    // Display results
+                    container.innerHTML = `<h3>Loaded ${testVideos.length} videos:</h3>${videoHTML}`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    container.innerHTML = `<div class="error-message">Error loading videos: ${error.message}</div>`;
+                });
+        }
+        
+        // Event listeners
+        document.getElementById('test-real').addEventListener('click', testRealVideos);
+        
+        // Auto-run test when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testRealVideos, 1000);
+        });
+    </script>
+</body>
+</html>

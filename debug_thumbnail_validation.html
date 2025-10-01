@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Thumbnail Validation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-title {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .url-info {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debug Thumbnail Validation</h1>
+        <p>This page tests the thumbnail validation logic used in JavaScript files.</p>
+        
+        <button id="load-test">Load Test Videos</button>
+        <button id="test-validation">Test Validation Logic</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // Function that replicates the exact validation logic used in JS files
+        function validateThumbnail(thumbnail) {
+            // Check if thumbnail URL is valid, if not use fallback
+            if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
+                !thumbnail.startsWith('http') || thumbnail.trim() === '') {
+                return 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            }
+            
+            // Additional check for broken image URLs
+            const brokenImagePatterns = ['data:image', 'blob:', 'javascript:'];
+            if (brokenImagePatterns.some(pattern => thumbnail.startsWith(pattern))) {
+                return 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            }
+            
+            return thumbnail;
+        }
+        
+        // Function to test a single thumbnail
+        function testSingleThumbnail(thumbnail) {
+            const validated = validateThumbnail(thumbnail);
+            const isUsingFallback = validated.includes('placehold.co');
+            
+            return {
+                original: thumbnail,
+                validated: validated,
+                isUsingFallback: isUsingFallback,
+                reason: isUsingFallback ? getFallbackReason(thumbnail) : 'Valid thumbnail'
+            };
+        }
+        
+        // Function to get reason for fallback
+        function getFallbackReason(thumbnail) {
+            if (!thumbnail) return 'Missing thumbnail';
+            if (thumbnail.includes('undefined')) return 'Contains "undefined"';
+            if (thumbnail.includes('null')) return 'Contains "null"';
+            if (!thumbnail.startsWith('http')) return 'Invalid URL format';
+            if (thumbnail.trim() === '') return 'Empty string';
+            return 'Unknown reason';
+        }
+        
+        // Function to test video data
+        function testVideos(videos) {
+            const testVideos = videos.slice(0, 10);
+            
+            const results = testVideos.map(video => {
+                const validationResult = testSingleThumbnail(video.thumbnail);
+                
+                return {
+                    title: video.title,
+                    ...validationResult
+                };
+            });
+            
+            return results;
+        }
+        
+        // Function to display results
+        function displayResults(results) {
+            const container = document.getElementById('test-results');
+            
+            container.innerHTML = `
+                <h2>Validation Test Results</h2>
+                <p>Tested ${results.length} videos</p>
+                
+                ${results.map(result => `
+                    <div class="video-card">
+                        <div class="video-title">${result.title}</div>
+                        
+                        <div class="video-thumbnail">
+                            <img src="${result.validated}" alt="${result.title}" onerror="this.onerror=null; this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=Thumbnail+Error';">
+                        </div>
+                        
+                        <div class="url-info">
+                            <strong>Original Thumbnail:</strong> ${result.original}
+                        </div>
+                        
+                        <div class="url-info">
+                            <strong>Validated Thumbnail:</strong> ${result.validated}
+                        </div>
+                        
+                        <div class="status ${result.isUsingFallback ? 'warning' : 'success'}">
+                            Status: ${result.isUsingFallback ? 'Using Fallback' : 'Valid'}
+                        </div>
+                        
+                        ${result.isUsingFallback ? `<div class="url-info"><strong>Reason:</strong> ${result.reason}</div>` : ''}
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        // Function to test validation logic directly
+        function testValidationLogic() {
+            const testCases = [
+                '',  // Empty string
+                null,  // Null
+                undefined,  // Undefined
+                'undefined',  // String "undefined"
+                'null',  // String "null"
+                'https://c1.ttcache.com/thumbnail/test/1.jpg',  // Valid
+                'http://c2.ttcache.com/thumbnail/test/2.jpg',  // Valid HTTP
+                '://invalid-url',  // Invalid format
+                'www.example.com/thumbnail.jpg',  // Missing protocol
+                'data:image/jpeg;base64,...',  // Data URL
+                'blob:...',  // Blob URL
+                'javascript:alert("test")',  // JavaScript URL
+                'https://c3.ttcache.com/thumbnail/secFSj36nt6/288x162/6.jpg'  // Real example
+            ];
+            
+            const results = testCases.map(testCase => {
+                const result = testSingleThumbnail(testCase);
+                return {
+                    input: testCase === null ? 'null' : testCase === undefined ? 'undefined' : testCase,
+                    output: result.validated,
+                    isFallback: result.isUsingFallback,
+                    reason: result.reason
+                };
+            });
+            
+            const container = document.getElementById('test-results');
+            container.innerHTML = `
+                <h2>Validation Logic Test Results</h2>
+                <p>Tested ${results.length} validation cases</p>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Input</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Output</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Fallback Used</th>
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(result => `
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${result.input}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${result.output}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;" class="${result.isFallback ? 'warning' : 'success'}">${result.isFallback ? 'Yes' : 'No'}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${result.reason}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Event listener for the test button
+        document.getElementById('load-test').addEventListener('click', () => {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>Loading videos...</p>';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    const results = testVideos(videos);
+                    displayResults(results);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsDiv.innerHTML = `<p>Error loading videos: ${error.message}</p>`;
+                });
+        });
+        
+        // Event listener for the validation test button
+        document.getElementById('test-validation').addEventListener('click', testValidationLogic);
+    </script>
+</body>
+</html>

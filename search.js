@@ -5,6 +5,115 @@ let allFilteredVideos = [];
 let videosCache = null; // Cache for video data
 let isLoading = false; // Flag to prevent multiple simultaneous requests
 
+// Enhanced thumbnail validation function with comprehensive placeholder detection
+function isValidThumbnail(thumbnailUrl) {
+    // Check if thumbnail exists and is not empty
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string' || thumbnailUrl.trim() === '') {
+        return false;
+    }
+    
+    // Trim whitespace
+    const trimmedUrl = thumbnailUrl.trim();
+    
+    // Check if it's a valid URL format
+    try {
+        new URL(trimmedUrl);
+    } catch (e) {
+        return false;
+    }
+    
+    // Convert to lowercase for case-insensitive matching
+    const thumbnailLower = trimmedUrl.toLowerCase();
+    
+    // Check for common placeholder URL patterns
+    if (thumbnailLower.startsWith('data:image') || 
+        thumbnailLower.startsWith('blob:') || 
+        thumbnailLower.startsWith('javascript:')) {
+        return false;
+    }
+    
+    // Comprehensive placeholder detection
+    const placeholderPatterns = [
+        'placehold.co',
+        'placeholder',
+        'no thumbnail',
+        'no image',
+        'image not found',
+        'thumbnail not available',
+        'not available',
+        'default',
+        'missing',
+        'error',
+        'undefined',
+        'null',
+        'blank',
+        'empty'
+    ];
+    
+    // Check URL and decoded URL parameters for placeholder text
+    try {
+        // Check the URL itself
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+        
+        // Decode URL parameters and check for placeholder text
+        const urlObj = new URL(trimmedUrl);
+        const searchParams = urlObj.searchParams;
+        
+        // Check all URL parameters for placeholder text
+        for (const [key, value] of searchParams) {
+            const paramValueLower = value.toLowerCase();
+            for (const pattern of placeholderPatterns) {
+                if (paramValueLower.includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        // Also check the full search string
+        const searchString = urlObj.search.toLowerCase();
+        for (const pattern of placeholderPatterns) {
+            if (searchString.includes(pattern)) {
+                return false;
+            }
+        }
+    } catch (e) {
+        // If URL parsing fails, just check the string
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// Enhanced video filtering function
+function filterVideosWithValidThumbnails(videos) {
+    if (!Array.isArray(videos)) {
+        console.error('Invalid videos array provided to filter function');
+        return [];
+    }
+    
+    return videos.filter(video => {
+        // Video must have a title
+        if (!video.title || typeof video.title !== 'string' || video.title.trim() === '') {
+            return false;
+        }
+        
+        // Video must have a valid thumbnail
+        if (!isValidThumbnail(video.thumbnail)) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
 // Get search query from URL parameters
 function getSearchQuery() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -20,9 +129,8 @@ function createVideoCard(video, index = 0) {
     let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     const detailUrl = video.detail_url || '#';
     
-    // Check if thumbnail URL is valid, if not use fallback
-    if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http') || thumbnail.trim() === '') {
+    // Check if thumbnail is valid
+    if (!isValidThumbnail(thumbnail)) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
@@ -103,72 +211,6 @@ function removeDuplicateVideos(videos) {
     
     return uniqueVideos;
 }
-
-// Function to sort videos based on selected criteria (removed as per user request)
-// function sortVideos(videos, sortBy) {
-//     // Create a copy of the array to avoid modifying the original
-//     const sortedVideos = [...videos];
-//     
-//     switch (sortBy) {
-//         case 'newest':
-//             // Sort by date - newest first (most recent to oldest)
-//             // Since we don't have actual dates, we'll simulate this by shuffling
-//             // In a real implementation, you would sort by actual upload dates
-//             return sortedVideos.sort(() => Math.random() - 0.5);
-//         case 'popular':
-//             // Sort by views - most views first (highest to lowest)
-//             // Since we don't have actual view counts, we'll simulate this by shuffling
-//             // In a real implementation, you would sort by actual view counts
-//             return sortedVideos.sort(() => Math.random() - 0.5);
-//         case 'duration':
-//             // Sort by duration - longest first (longest to shortest)
-//             // Since we don't have actual durations, we'll simulate this by shuffling
-//             // In a real implementation, you would sort by actual durations
-//             return sortedVideos.sort(() => Math.random() - 0.5);
-//         case 'relevance':
-//         default:
-//             // Default order (shuffle for variety)
-//             return sortedVideos.sort(() => Math.random() - 0.5);
-//     }
-// }
-
-// Function to filter videos by duration (removed as per user request)
-// function filterVideosByDuration(videos, durationFilter) {
-//     // Since we don't have actual duration data, we'll filter based on assigned durations
-//     // For demo purposes, we'll categorize videos by assigning consistent durations
-//     if (durationFilter === 'any') {
-//         return videos;
-//     }
-//     
-//     // Assign consistent durations to videos based on their properties
-//     return videos.filter((video, index) => {
-//         // Assign durations in a consistent pattern using the same method as video card creation
-//         const durations = ["08:30", "12:15", "15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"];
-//         const title = video.title || 'Untitled Video';
-//         const durationSeed = title.length + (video.detail_url ? video.detail_url.length : 0) + index;
-//         const durationIndex = durationSeed % durations.length;
-//         const assignedDuration = durations[durationIndex];
-//         
-//         // Parse duration to minutes for comparison
-//         const [minutes, seconds] = assignedDuration.split(':').map(Number);
-//         const totalMinutes = minutes + (seconds / 60);
-//         
-//         // Filter based on duration range
-//         switch (durationFilter) {
-//             case 'short':
-//                 // 10 minutes or below
-//                 return totalMinutes <= 10;
-//             case 'medium':
-//                 // 10-30 minutes
-//                 return totalMinutes > 10 && totalMinutes <= 30;
-//             case 'long':
-//                 // 30 minutes or longer
-//                 return totalMinutes > 30;
-//             default:
-//                 return true;
-//         }
-//     });
-// }
 
 // Function to load search results from videos_cleaned.json with caching
 async function loadSearchResults(query) {
@@ -259,6 +301,9 @@ async function loadSearchResults(query) {
                                    (video.detail_url && video.detail_url.trim() !== '' && video.detail_url !== '#');
                 
                 if (!hasValidUrl) return false;
+                
+                // Filter out videos without valid thumbnails
+                if (!isValidThumbnail(video.thumbnail)) return false;
                 
                 // Check if title contains the exact query (case insensitive)
                 const titleMatch = video.title && video.title.toLowerCase().includes(query.toLowerCase());
@@ -464,34 +509,6 @@ function handleSearch() {
         console.log('No search query provided');
     }
 }
-
-// Function to handle sorting changes (removed as per user request)
-// function handleSortChange() {
-//     const sortBy = document.getElementById('sort-by');
-//     if (sortBy) {
-//         currentSortBy = sortBy.value;
-//         const query = getSearchQuery();
-//         if (query) {
-//             // Reset to first page when sorting
-//             currentPage = 1;
-//             loadSearchResults(query);
-//         }
-//     }
-// }
-
-// Function to handle duration filter changes (removed as per user request)
-// function handleDurationChange() {
-//     const duration = document.getElementById('duration');
-//     if (duration) {
-//         currentDurationFilter = duration.value;
-//         const query = getSearchQuery();
-//         if (query) {
-//             // Reset to first page when filtering
-//             currentPage = 1;
-//             loadSearchResults(query);
-//         }
-//     }
-// }
 
 // Function to initialize the search page
 function init() {

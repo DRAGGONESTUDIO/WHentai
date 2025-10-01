@@ -6,6 +6,115 @@ let videosCache = null; // Cache for video data
 let isLoading = false; // Flag to prevent multiple simultaneous requests
 // No video numbering needed
 
+// Enhanced thumbnail validation function with comprehensive placeholder detection
+function isValidThumbnail(thumbnailUrl) {
+    // Check if thumbnail exists and is not empty
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string' || thumbnailUrl.trim() === '') {
+        return false;
+    }
+    
+    // Trim whitespace
+    const trimmedUrl = thumbnailUrl.trim();
+    
+    // Check if it's a valid URL format
+    try {
+        new URL(trimmedUrl);
+    } catch (e) {
+        return false;
+    }
+    
+    // Convert to lowercase for case-insensitive matching
+    const thumbnailLower = trimmedUrl.toLowerCase();
+    
+    // Check for common placeholder URL patterns
+    if (thumbnailLower.startsWith('data:image') || 
+        thumbnailLower.startsWith('blob:') || 
+        thumbnailLower.startsWith('javascript:')) {
+        return false;
+    }
+    
+    // Comprehensive placeholder detection
+    const placeholderPatterns = [
+        'placehold.co',
+        'placeholder',
+        'no thumbnail',
+        'no image',
+        'image not found',
+        'thumbnail not available',
+        'not available',
+        'default',
+        'missing',
+        'error',
+        'undefined',
+        'null',
+        'blank',
+        'empty'
+    ];
+    
+    // Check URL and decoded URL parameters for placeholder text
+    try {
+        // Check the URL itself
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+        
+        // Decode URL parameters and check for placeholder text
+        const urlObj = new URL(trimmedUrl);
+        const searchParams = urlObj.searchParams;
+        
+        // Check all URL parameters for placeholder text
+        for (const [key, value] of searchParams) {
+            const paramValueLower = value.toLowerCase();
+            for (const pattern of placeholderPatterns) {
+                if (paramValueLower.includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        // Also check the full search string
+        const searchString = urlObj.search.toLowerCase();
+        for (const pattern of placeholderPatterns) {
+            if (searchString.includes(pattern)) {
+                return false;
+            }
+        }
+    } catch (e) {
+        // If URL parsing fails, just check the string
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// Enhanced video filtering function
+function filterVideosWithValidThumbnails(videos) {
+    if (!Array.isArray(videos)) {
+        console.error('Invalid videos array provided to filter function');
+        return [];
+    }
+    
+    return videos.filter(video => {
+        // Video must have a title
+        if (!video.title || typeof video.title !== 'string' || video.title.trim() === '') {
+            return false;
+        }
+        
+        // Video must have a valid thumbnail
+        if (!isValidThumbnail(video.thumbnail)) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
 // Function to create video card HTML with numbering
 function createVideoCard(video, index = 0) {
     // Default values for missing properties
@@ -13,9 +122,8 @@ function createVideoCard(video, index = 0) {
     let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     const detailUrl = video.detail_url || '#';
     
-    // Check if thumbnail URL is valid, if not use fallback
-    if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http') || thumbnail.trim() === '') {
+    // Check if thumbnail is valid
+    if (!isValidThumbnail(thumbnail)) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
@@ -133,8 +241,11 @@ function processVideos(videos) {
             (video.detail_url && video.detail_url.trim() !== '' && video.detail_url !== '#')
         );
         
+        // Filter out videos without valid thumbnails
+        const videosWithValidThumbnails = filterVideosWithValidThumbnails(validVideos);
+        
         // Remove duplicate videos
-        const uniqueVideos = removeDuplicateVideos(validVideos);
+        const uniqueVideos = removeDuplicateVideos(videosWithValidThumbnails);
         
         // Shuffle the videos array using Fisher-Yates algorithm
         const shuffledVideos = [...uniqueVideos];

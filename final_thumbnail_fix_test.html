@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Thumbnail Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-card {
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #222;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+            width: 300px;
+            vertical-align: top;
+            margin: 10px;
+        }
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background-color: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-title {
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 14px;
+            height: 40px;
+            overflow: hidden;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #ff9000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #ff7700;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #222;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #2c552c;
+            border: 1px solid #4caf50;
+        }
+        .error {
+            background-color: #552c2c;
+            border: 1px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Final Thumbnail Fix Test</h1>
+        <p>This page tests the final thumbnail fix implementation.</p>
+        
+        <div class="test-section">
+            <h2>Thumbnail Display Test</h2>
+            <button id="test-thumbnails">Test Thumbnails</button>
+            <div id="test-results"></div>
+            <div id="thumbnail-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Ultra-simple function to create video card HTML with fixed error handling
+        function createVideoCard(video, index = 0) {
+            // Default values for missing properties
+            const title = video.title || 'Untitled Video';
+            const thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
+            
+            // Ultra-simple thumbnail handling with immediate fallback
+            return `
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <img src="${thumbnail}" alt="${title}" onerror="this.src='https://placehold.co/300x200/1a1a1a/ff6b6b?text=Thumbnail+Error'; this.onerror=null;">
+                    </div>
+                    <div class="video-title">${title}</div>
+                </div>
+            `;
+        }
+        
+        // Function to test thumbnail display
+        function testThumbnails() {
+            const resultsContainer = document.getElementById('test-results');
+            const thumbnailsContainer = document.getElementById('thumbnail-results');
+            
+            resultsContainer.innerHTML = '<div class="loading">Loading and testing videos...</div>';
+            thumbnailsContainer.innerHTML = '';
+            
+            fetch('videos.json')
+                .then(response => response.json())
+                .then(videos => {
+                    // Test with a sample of videos
+                    const testVideos = videos.slice(0, 20);
+                    
+                    // Create video cards
+                    const videoHTML = testVideos.map((video, index) => createVideoCard(video, index)).join('');
+                    thumbnailsContainer.innerHTML = `<h3>Sample Videos:</h3>${videoHTML}`;
+                    
+                    // Show success message
+                    resultsContainer.innerHTML = `
+                        <div class="result success">
+                            <h3>Test Results:</h3>
+                            <p>Successfully loaded ${testVideos.length} videos from videos.json</p>
+                            <p>Each thumbnail should either display properly or immediately show a fallback image.</p>
+                            <p>If you see placeholder images with "Thumbnail Error" text, those thumbnails are genuinely broken.</p>
+                            <p>If you see actual video thumbnails, the fix is working correctly.</p>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsContainer.innerHTML = `
+                        <div class="result error">
+                            <h3>Error Loading Videos:</h3>
+                            <p>${error.message}</p>
+                            <p>Please check that videos.json exists and is accessible.</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Event listeners
+        document.getElementById('test-thumbnails').addEventListener('click', testThumbnails);
+        
+        // Auto-run test when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testThumbnails, 1000);
+        });
+    </script>
+</body>
+</html>

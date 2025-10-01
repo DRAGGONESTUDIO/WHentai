@@ -9,6 +9,115 @@ let currentTrendingDurationFilter = 'any'; // Default duration filter for trendi
 let currentLatestSortBy = 'random'; // Default sorting for latest videos
 let currentLatestDurationFilter = 'any'; // Default duration filter for latest videos
 
+// Enhanced thumbnail validation function with comprehensive placeholder detection
+function isValidThumbnail(thumbnailUrl) {
+    // Check if thumbnail exists and is not empty
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string' || thumbnailUrl.trim() === '') {
+        return false;
+    }
+    
+    // Trim whitespace
+    const trimmedUrl = thumbnailUrl.trim();
+    
+    // Check if it's a valid URL format
+    try {
+        new URL(trimmedUrl);
+    } catch (e) {
+        return false;
+    }
+    
+    // Convert to lowercase for case-insensitive matching
+    const thumbnailLower = trimmedUrl.toLowerCase();
+    
+    // Check for common placeholder URL patterns
+    if (thumbnailLower.startsWith('data:image') || 
+        thumbnailLower.startsWith('blob:') || 
+        thumbnailLower.startsWith('javascript:')) {
+        return false;
+    }
+    
+    // Comprehensive placeholder detection
+    const placeholderPatterns = [
+        'placehold.co',
+        'placeholder',
+        'no thumbnail',
+        'no image',
+        'image not found',
+        'thumbnail not available',
+        'not available',
+        'default',
+        'missing',
+        'error',
+        'undefined',
+        'null',
+        'blank',
+        'empty'
+    ];
+    
+    // Check URL and decoded URL parameters for placeholder text
+    try {
+        // Check the URL itself
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+        
+        // Decode URL parameters and check for placeholder text
+        const urlObj = new URL(trimmedUrl);
+        const searchParams = urlObj.searchParams;
+        
+        // Check all URL parameters for placeholder text
+        for (const [key, value] of searchParams) {
+            const paramValueLower = value.toLowerCase();
+            for (const pattern of placeholderPatterns) {
+                if (paramValueLower.includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        // Also check the full search string
+        const searchString = urlObj.search.toLowerCase();
+        for (const pattern of placeholderPatterns) {
+            if (searchString.includes(pattern)) {
+                return false;
+            }
+        }
+    } catch (e) {
+        // If URL parsing fails, just check the string
+        for (const pattern of placeholderPatterns) {
+            if (thumbnailLower.includes(pattern)) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// Enhanced video filtering function
+function filterVideosWithValidThumbnails(videos) {
+    if (!Array.isArray(videos)) {
+        console.error('Invalid videos array provided to filter function');
+        return [];
+    }
+    
+    return videos.filter(video => {
+        // Video must have a title
+        if (!video.title || typeof video.title !== 'string' || video.title.trim() === '') {
+            return false;
+        }
+        
+        // Video must have a valid thumbnail
+        if (!isValidThumbnail(video.thumbnail)) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
 // Function to create video card HTML
 function createVideoCard(video) {
     // Default values for missing properties
@@ -16,15 +125,8 @@ function createVideoCard(video) {
     let thumbnail = video.thumbnail || 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     const detailUrl = video.detail_url || '#';
     
-    // Check if thumbnail URL is valid, if not use fallback
-    if (!thumbnail || thumbnail.includes('undefined') || thumbnail.includes('null') || 
-        !thumbnail.startsWith('http') || thumbnail.trim() === '') {
-        thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
-    }
-    
-    // Additional check for broken image URLs
-    const brokenImagePatterns = ['data:image', 'blob:', 'javascript:'];
-    if (brokenImagePatterns.some(pattern => thumbnail.startsWith(pattern))) {
+    // Check if thumbnail is valid
+    if (!isValidThumbnail(thumbnail)) {
         thumbnail = 'https://placehold.co/300x200/1a1a1a/ff6b6b?text=No+Thumbnail';
     }
     
@@ -208,8 +310,11 @@ function processVideos(videos) {
             (video.detail_url && video.detail_url.trim() !== '' && video.detail_url !== '#')
         );
         
+        // Filter out videos without valid thumbnails
+        const videosWithValidThumbnails = filterVideosWithValidThumbnails(validVideos);
+        
         // Remove duplicate videos
-        const uniqueVideos = removeDuplicateVideos(validVideos);
+        const uniqueVideos = removeDuplicateVideos(videosWithValidThumbnails);
         
         // Store all videos for filtering
         allVideos = uniqueVideos.slice(0, 5000); // Load more videos for pagination but limit to 5000
@@ -400,7 +505,6 @@ function updatePagination() {
             
             paginationContainer.innerHTML = paginationHTML;
         } else {
-            // Hide pagination if there's only one page
             paginationContainer.style.display = 'none';
         }
     }
@@ -408,204 +512,83 @@ function updatePagination() {
 
 // Function to go to a specific page
 function goToPage(pageNumber) {
-    const totalPages = Math.ceil(allVideos.length / videosPerPage);
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
+    if (pageNumber >= 1 && pageNumber <= Math.ceil(allVideos.length / videosPerPage)) {
         currentPage = pageNumber;
         displayVideos();
-        
         // Scroll to top of page
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-// The loadMoreVideos function has been removed as we're now using pagination instead
-
-// Sample video data - fallback if videos.json fails to load
-const sampleVideos = [
-    {
-        title: "Demon Slayer - Tanjiro's Adventure",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+1",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "My Hero Academia - Hero vs Villain",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+2",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "Attack on Titan - Final Season",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+3",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "Spirited Away - Studio Ghibli",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+4",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "One Piece - Pirate King Dream",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+5",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "Naruto - Shadow Clone Jutsu",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+6",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "Dragon Ball Z - Super Saiyan",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+7",
-        detail_url: "#",
-        external_url: "#"
-    },
-    {
-        title: "Death Note - Light's Plan",
-        thumbnail: "https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+8",
-        detail_url: "#",
-        external_url: "#"
+// Event listeners for sorting and filtering
+document.addEventListener('DOMContentLoaded', function() {
+    // Load videos when page loads
+    loadVideosFromJSON();
+    
+    // Add event listeners for trending video filters
+    const trendingSortSelect = document.getElementById('trending-sort');
+    const trendingDurationSelect = document.getElementById('trending-duration');
+    
+    if (trendingSortSelect) {
+        trendingSortSelect.addEventListener('change', function() {
+            currentTrendingSortBy = this.value;
+            displayVideos();
+        });
     }
-];
+    
+    if (trendingDurationSelect) {
+        trendingDurationSelect.addEventListener('change', function() {
+            currentTrendingDurationFilter = this.value;
+            displayVideos();
+        });
+    }
+    
+    // Add event listeners for latest video filters
+    const latestSortSelect = document.getElementById('latest-sort');
+    const latestDurationSelect = document.getElementById('latest-duration');
+    
+    if (latestSortSelect) {
+        latestSortSelect.addEventListener('change', function() {
+            currentLatestSortBy = this.value;
+            displayVideos();
+        });
+    }
+    
+    if (latestDurationSelect) {
+        latestDurationSelect.addEventListener('change', function() {
+            currentLatestDurationFilter = this.value;
+            displayVideos();
+        });
+    }
+});
 
-// Function to populate video grids with sample data
+// Populate grids with sample data (fallback function)
 function populateVideoGrids() {
     const trendingContainer = document.getElementById('trending-videos');
     const latestContainer = document.getElementById('latest-videos');
     
-    if (trendingContainer) {
-        trendingContainer.innerHTML = sampleVideos.map(createVideoCard).join('');
-    }
-    
-    if (latestContainer) {
-        latestContainer.innerHTML = sampleVideos.map(createVideoCard).join('');
-    }
-    
-    // Hide pagination controls when using sample data
-    const paginationContainer = document.getElementById('pagination-controls');
-    if (paginationContainer) {
-        paginationContainer.style.display = 'none';
-    }
-}
-
-// Function to handle search
-function handleSearch(query) {
-    if (query) {
-        // Redirect to search page with query
-        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-    }
-}
-
-// Function to handle trending sort filter changes
-function handleTrendingSortChange() {
-    const sortFilter = document.getElementById('sort-filter');
-    if (sortFilter) {
-        currentTrendingSortBy = sortFilter.value;
-        // Reset to first page when sorting
-        currentPage = 1;
-        // Re-display videos with new sort order
-        displayVideos();
-    }
-}
-
-// Function to handle trending duration filter changes
-function handleTrendingDurationChange() {
-    const durationFilter = document.getElementById('duration-filter');
-    if (durationFilter) {
-        currentTrendingDurationFilter = durationFilter.value;
-        // Reset to first page when filtering
-        currentPage = 1;
-        // Re-display videos with new duration filter
-        displayVideos();
-    }
-}
-
-// Function to handle latest sort filter changes
-function handleLatestSortChange() {
-    const sortFilter = document.getElementById('latest-sort-filter');
-    if (sortFilter) {
-        currentLatestSortBy = sortFilter.value;
-        // Reset to first page when sorting
-        currentPage = 1;
-        // Re-display videos with new sort order
-        displayVideos();
-    }
-}
-
-// Function to handle latest duration filter changes
-function handleLatestDurationChange() {
-    const durationFilter = document.getElementById('latest-duration-filter');
-    if (durationFilter) {
-        currentLatestDurationFilter = durationFilter.value;
-        // Reset to first page when filtering
-        currentPage = 1;
-        // Re-display videos with new duration filter
-        displayVideos();
-    }
-}
-
-// Function to initialize the page
-function init() {
-    // Load videos
-    loadVideosFromJSON();
-    
-    // Set up search functionality
-    const searchInput = document.querySelector('.search-bar input');
-    const searchButton = document.querySelector('.search-bar button');
-    
-    if (searchButton && searchInput) {
-        searchButton.addEventListener('click', () => {
-            const query = searchInput.value.trim();
-            handleSearch(query);
-        });
+    if (trendingContainer && latestContainer) {
+        // Create sample video cards
+        const sampleVideos = Array.from({ length: 36 }, (_, i) => ({
+            title: `Sample Video ${i + 1}`,
+            thumbnail: `https://placehold.co/300x200/1a1a1a/ff6b6b?text=Video+${i + 1}`,
+            detail_url: '#',
+            external_url: '#',
+            duration: ["15:30", "18:42", "22:15", "24:10", "28:05", "32:40", "35:15", "40:20"][Math.floor(Math.random() * 8)],
+            views: ["1.2M", "980K", "2.1M", "3.5M", "1.8M", "1.5M", "2.7M", "1.3M"][Math.floor(Math.random() * 8)],
+            upload_date: ["2 days ago", "1 week ago", "3 days ago", "2 weeks ago", "5 days ago", "4 days ago", "1 day ago", "3 days ago"][Math.floor(Math.random() * 8)]
+        }));
         
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const query = searchInput.value.trim();
-                handleSearch(query);
-            }
-        });
-    }
-    
-    // Set up trending filters
-    const trendingSortFilter = document.getElementById('sort-filter');
-    if (trendingSortFilter) {
-        trendingSortFilter.addEventListener('change', handleTrendingSortChange);
-    }
-    
-    const trendingDurationFilter = document.getElementById('duration-filter');
-    if (trendingDurationFilter) {
-        trendingDurationFilter.addEventListener('change', handleTrendingDurationChange);
-    }
-    
-    // Set up latest filters
-    const latestSortFilter = document.getElementById('latest-sort-filter');
-    if (latestSortFilter) {
-        latestSortFilter.addEventListener('change', handleLatestSortChange);
-    }
-    
-    const latestDurationFilter = document.getElementById('latest-duration-filter');
-    if (latestDurationFilter) {
-        latestDurationFilter.addEventListener('change', handleLatestDurationChange);
+        // Split sample videos between trending and latest
+        const trendingVideos = sampleVideos.slice(0, 18);
+        const latestVideos = sampleVideos.slice(18);
+        
+        // Create video cards
+        const trendingVideoCards = trendingVideos.map(createVideoCard);
+        const latestVideoCards = latestVideos.map(createVideoCard);
+        
+        // Replace content with video cards
+        trendingContainer.innerHTML = trendingVideoCards.join('');
+        latestContainer.innerHTML = latestVideoCards.join('');
     }
 }
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
-
-// Add smooth scrolling for navigation links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth'
-            });
-        }
-    });
-});
